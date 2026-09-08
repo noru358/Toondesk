@@ -12,7 +12,7 @@ function act(name) {
   if (name === 'dup') {
     if (!list.length) return;
     H_();
-    const add = list.map(x => { const c = clone(x); c.id = uid(x.type.slice(0, 3)); c.x += 24; c.y += 24; if (c.tail_to) { c.tail_to.x += 24; c.tail_to.y += 24; } return c; });
+    const add = list.map(x => { const c = clone(x); c.id = uid(x.type.slice(0, 3)); c.x += 24; c.y += 24; shiftTailGeometry(c,24,24); markManual(c,'object_presence','position'); return c; });
     p.objects.push(...add); sel.ids.clear(); add.forEach(a => sel.ids.add(a.id)); return fullRefresh();
   }
   if (name === 'front' || name === 'back') {
@@ -21,14 +21,14 @@ function act(name) {
     for (const x of list) {
       const band = bandFor(p, x);
       const peers = p.objects.filter(q => q.z >= band[0] && q.z <= band[1] && q !== x).map(q => q.z);
-      x.z = clamp(name === 'front' ? (peers.length ? Math.max(...peers) + 1 : band[0]) : (peers.length ? Math.min(...peers) - 1 : band[0]), band[0], band[1]);
+      x.z = clamp(name === 'front' ? (peers.length ? Math.max(...peers) + 1 : band[0]) : (peers.length ? Math.min(...peers) - 1 : band[0]), band[0], band[1]); markManual(x,'z_order');
     }
     return fullRefresh();
   }
-  if (name.startsWith('al-')) { H_(); list.forEach(t => t.align = name.slice(3)); return fullRefresh(); }
+  if (name.startsWith('al-')) { H_(); list.forEach(t => { t.align = name.slice(3); markManual(t,'typography'); }); return fullRefresh(); }
   if (name === 'outline') {
     H_(); const on = o.stroke && o.stroke !== 'none';
-    list.forEach(t => { if (on) { t.stroke = 'none'; t.stroke_width = 0; } else { t.stroke = '#ffffff'; t.stroke_width = Math.max(4, Math.round(((t.font || {}).size || 40) / 8)); } });
+    list.forEach(t => { if (on) { t.stroke = 'none'; t.stroke_width = 0; } else { t.stroke = '#ffffff'; t.stroke_width = Math.max(4, Math.round(((t.font || {}).size || 40) / 8)); } markManual(t,'typography'); });
     return fullRefresh();
   }
   if (name === 'fit') {
@@ -36,7 +36,7 @@ function act(name) {
     for (const t of list) {
       const R = roleOf(t); let lo = 8, hi = Math.max(R.max, (t.font.size || R.nominal));
       for (let i = 0; i < 22; i++) { const mid = (lo + hi) / 2; t.font.size = mid; layoutText(t).overflow ? hi = mid : lo = mid; }
-      t.font.size = Math.floor(lo);
+      t.font.size = Math.floor(lo); markManual(t,'typography');
     }
     return fullRefresh();
   }
@@ -44,25 +44,23 @@ function act(name) {
     H_();
     if (bubbleTailData(o)) { delete o.tail; delete o.tail_to; }
     else ensureBubbleTail(o);
+    markManual(o,'tail_shape');
     return fullRefresh();
   }
   if (name === 'bubbleFlipX' && o?.type === 'bubble') {
     const t = bubbleTailData(o);
     if (!t) return toast('먼저 꼬리를 켜세요');
     H_();
-    const q = ensureBubbleTail(o);
-    const cx = o.x + o.width / 2;
-    q.tip_x = round2(cx * 2 - q.tip_x);
-    q.attach = round2(1 - (q.attach ?? .5));
-    if (q.attach_side === 'left') q.attach_side = 'right';
-    else if (q.attach_side === 'right') q.attach_side = 'left';
+    ensureBubbleTail(o);
+    SceneState.mirrorBubbleTailX(o);
+    markManual(o,'tail_tip','tail_attachment');
     return fullRefresh();
   }
   if (name === 'crop') { sel.crop = o.id; return fullRefresh(); }
   if (name === 'cropDone') { sel.crop = null; return fullRefresh(); }
   if (name === 'cropReset') {
     const t = sel.crop ? byId(p, sel.crop) : o; if (!t) return;
-    H_(); t.crop = { mode: 'frame_crop', scale: 1, offset_x: 0, offset_y: 0, anchor_x: .5, anchor_y: .5, allow_stretch: false, allow_rotation: false, clamp_to_frame: true, editable: true };
+    H_(); t.crop = { mode: 'frame_crop', scale: 1, offset_x: 0, offset_y: 0, anchor_x: .5, anchor_y: .5, allow_stretch: false, allow_rotation: false, clamp_to_frame: true, editable: true }; markManual(t,'crop');
     return fullRefresh();
   }
   if (name === 'lock') { H_(); o.locked = !o.locked; return fullRefresh(); }
@@ -79,7 +77,7 @@ function act(name) {
       if(name==='alignT')dy=b.y-x.y;
       if(name==='alignM')dy=b.y+(b.h-x.height)/2-x.y;
       if(name==='alignB')dy=b.y+b.h-x.height-x.y;
-      x.x=round2(x.x+dx);x.y=round2(x.y+dy);shiftTailGeometry(x,dx,dy);
+      x.x=round2(x.x+dx);x.y=round2(x.y+dy);shiftTailGeometry(x,dx,dy);markManual(x,'position');
     }
     return fullRefresh();
   }
@@ -98,13 +96,16 @@ function act(name) {
       const target=cursor,cur=vertical?x.y:x.x;
       const d=target-cur;
       if(vertical){x.y=round2(target);shiftTailGeometry(x,0,d);}
-      else{x.x=round2(target);shiftTailGeometry(x,d,0);}
+      else{x.x=round2(target);shiftTailGeometry(x,d,0);} markManual(x,'position');
       cursor+=(vertical?x.height:x.width)+gap;
     }
     return fullRefresh();
   }
   if(name==='smartPlace' && list.length){
+    const protectedCount=list.filter(x=>hasManual(x,'position')).length;
+    if(protectedCount && !confirm(`선택한 ${protectedCount}개 요소의 수동 위치만 초기화하고 빈곳 배치를 다시 적용할까요? 다른 수동 속성은 유지됩니다.`)) return;
     H_();
+    list.forEach(x=>clearManual(x,'position'));
     const b=aabb(list),p=curPage();
     const inset=p.page.page_type==='cover'
       ? (SHELL.cover_title_safe||{x:48,y:36,width:W-96,height:330})
@@ -140,27 +141,33 @@ function act(name) {
 }
 let pendingReplace = null;
 
-function padFor(o) {
-  const L = layoutText(o);
-  return Math.max(0, (o.height - L.total) / 2);
+function editorPadding(o) {
+  const L=layoutText(o),p=L.pad||textPadding(o),extra=Math.max(0,(L.contentH-L.total)/2);
+  return {left:p.left,right:p.right,top:p.top+extra,bottom:p.bottom};
 }
 function startEdit(o) {
   pushHistory();
-  sel.editing = o.id;
+  sel.editing = o.id; sel.editingOriginal = o.text || '';
   const ta = $('#editor'), L = layoutText(o);
   ta.style.display = 'block';
   ta.style.left = o.x + 'px'; ta.style.top = o.y + 'px';
   ta.style.width = o.width + 'px'; ta.style.height = o.height + 'px';
   ta.style.font = L.css; ta.style.lineHeight = L.lh + 'px';
   ta.style.textAlign = o.align || 'center'; ta.style.color = o.fill || '#221f1d';
-  ta.style.paddingTop = padFor(o) + 'px';
+  const ep=editorPadding(o); ta.style.paddingLeft=ep.left+'px'; ta.style.paddingRight=ep.right+'px'; ta.style.paddingTop=ep.top+'px'; ta.style.paddingBottom=ep.bottom+'px';
   ta.value = o.text || '';
   draw();
   requestAnimationFrame(() => { ta.focus(); ta.select(); });
 }
 function stopEdit() {
   if (!sel.editing) return;
-  sel.editing = null; $('#editor').style.display = 'none'; fullRefresh();
+  const o=byId(curPage(),sel.editing), before=sel.editingOriginal ?? '';
+  if(o && String(o.text ?? '') !== String(before)){
+    if(stripLineBreaks(o.text) === stripLineBreaks(before)) markManual(o,'line_breaks');
+    else markManual(o,'text');
+    SceneState.clearAttention(o,'LINE_BREAK_REVIEW_REQUIRED');
+  }
+  sel.editing = null; sel.editingOriginal = null; $('#editor').style.display = 'none'; fullRefresh();
 }
 
 const vp = $('#viewport');
@@ -254,6 +261,14 @@ function drawMarquee(d) {
 }
 
 vp.addEventListener('pointerup', () => {
+  if(drag){
+    if(drag.mode==='crop') markManual(drag.o,'crop');
+    if(drag.mode==='tailTip') markManual(drag.o,'tail_tip');
+    if(drag.mode==='tailAttach') markManual(drag.o,'tail_attachment');
+    if(drag.mode==='move' && drag.moved) selObjs().forEach(o=>markManual(o,'position'));
+    if(drag.mode==='resize') selObjs().forEach(o=>{markManual(o,'position','size'); if(o.type==='text'||o.type==='sfx')markManual(o,'typography');});
+    if(drag.mode==='rotate') selObjs().forEach(o=>markManual(o,'rotation'));
+  }
   if (drag && drag.mode === 'marquee') {
     const d = drag, x0 = Math.min(d.start.x, d.cur.x), y0 = Math.min(d.start.y, d.cur.y), x1 = Math.max(d.start.x, d.cur.x), y1 = Math.max(d.start.y, d.cur.y);
     if (x1 - x0 > 6 || y1 - y0 > 6) for (const o of objs()) { const r = rectOf(o); if (o.visible !== false && r.x < x1 && r.x + r.w > x0 && r.y < y1 && r.y + r.h > y0) sel.ids.add(o.id); }
@@ -270,12 +285,12 @@ vp.addEventListener('dblclick', ev => {
 });
 vp.addEventListener('wheel', ev => {
   ev.preventDefault();
-  if (sel.crop && !ev.ctrlKey && !ev.metaKey) { const t = byId(curPage(), sel.crop); t.crop = t.crop || {}; t.crop.scale = clamp((t.crop.scale || 1) * (ev.deltaY > 0 ? .95 : 1.05), 1, 4); renderCtx(true); draw(); return; }
+  if (sel.crop && !ev.ctrlKey && !ev.metaKey) { const t = byId(curPage(), sel.crop); pushHistory(); t.crop = t.crop || {}; t.crop.scale = clamp((t.crop.scale || 1) * (ev.deltaY > 0 ? .95 : 1.05), 1, 4); markManual(t,'crop'); renderCtx(true); draw(); return; }
   if (ev.ctrlKey || ev.metaKey) { zoomAt(view.z * (ev.deltaY > 0 ? .9 : 1.1), ev.clientX, ev.clientY); return; }
   view.px -= ev.deltaX; view.py -= ev.deltaY; applyView();
 }, { passive: false });
 
-$('#editor').addEventListener('input', e => { const o = byId(curPage(), sel.editing); if (!o) return; o.text = e.target.value; e.target.style.paddingTop = padFor(o) + 'px'; draw(); });
+$('#editor').addEventListener('input', e => { const o = byId(curPage(), sel.editing); if (!o) return; o.text = e.target.value; const ep=editorPadding(o); e.target.style.paddingLeft=ep.left+'px'; e.target.style.paddingRight=ep.right+'px'; e.target.style.paddingTop=ep.top+'px'; e.target.style.paddingBottom=ep.bottom+'px'; draw(); });
 $('#editor').addEventListener('blur', stopEdit);
 $('#editor').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); stopEdit(); } e.stopPropagation(); });
 
@@ -294,6 +309,6 @@ addEventListener('keydown', e => {
   if (e.key === 'Enter' && sel.ids.size === 1) { const o = selObjs()[0]; if (o.type === 'text' || o.type === 'sfx') { e.preventDefault(); startEdit(o); } return; }
   const step = e.shiftKey ? 10 : 1;
   const arrows = { ArrowLeft: [-step,0], ArrowRight:[step,0], ArrowUp:[0,-step], ArrowDown:[0,step] };
-  if (arrows[e.key] && sel.ids.size) { e.preventDefault(); pushHistory(); moveSel(...arrows[e.key]); draw(); syncProps(); }
+  if (arrows[e.key] && sel.ids.size) { e.preventDefault(); pushHistory(); moveSel(...arrows[e.key]); selObjs().forEach(o=>markManual(o,'position')); draw(); syncProps(); }
 });
 addEventListener('keyup', e => { if (e.code === 'Space') spaceDown = false; });
