@@ -1,6 +1,6 @@
 {
   "name": "toondesk",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Profile-driven direct-manipulation editor for editable comic/carousel scene JSON.",
   "main": "desktop/main.cjs",
