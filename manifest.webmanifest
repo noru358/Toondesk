@@ -1,0 +1,11 @@
+{
+  "name": "ToonDesk",
+  "short_name": "ToonDesk",
+  "description": "Editable comic/carousel scene editor",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#faf6ef",
+  "theme_color": "#faf6ef"
+}
