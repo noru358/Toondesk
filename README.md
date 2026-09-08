@@ -31,17 +31,47 @@ The project repository decides its own canonical scene artifact. For JIPBAP that
 
 The authoritative JIPBAP profile should live in `noru358/jipbap/templates/`. The file under `profiles/` here is an example/development mirror only.
 
-Target default layout:
+Current JIPBAP example profile:
 
-- COVER = HEADER/TITLE + HERO
-- BODY = ARTWORK (speech/SFX inside) + lower META region (inner thought/narration)
+- COVER = full-canvas artwork + editable menu/title/decor overlays
+- BODY = full-canvas artwork + freeform speech/thought/narration/SFX overlays
+- no mandatory lower META band
+- focal/avoid metadata may guide lettering placement without becoming a hard frame
 - 1080×1350 default canvas
 - artwork frames start locked but can be explicitly overridden in the editor
 - page structure starts at COVER 1 + BODY 6 but editor capabilities remain available
+- preferred real fonts plus fallbacks are supported; missing preferred fonts surface as QC warnings rather than silently changing appearance
 
 ## Run
 
-Open `index.html` in a browser. Drop layout JSON, artwork images, and optionally a presentation-shell/profile JSON into the window.
+### Recommended: desktop app
+
+ToonDesk now has an Electron desktop shell while keeping the same browser engine.
+
+Development / local run:
+
+```bash
+npm install
+npm start
+```
+
+The desktop build adds:
+- native open/save dialogs
+- `.toondesk` file association support
+- double-click / OS-open handoff into the editor
+- the same scene/rendering engine as browser mode
+
+Build installers/portable apps:
+
+```bash
+npm run dist
+```
+
+A GitHub Actions `Desktop Build` workflow is also provided for Windows, macOS and Linux build artifacts.
+
+### Browser fallback
+
+Opening `index.html` directly remains supported. Drop layout JSON, artwork images, `.toondesk` session files, and optionally a presentation-shell/profile JSON into the window.
 
 ## Export
 
@@ -57,3 +87,14 @@ ToonDesk does not treat profile deviation as corruption. On export it computes w
 - `custom_override_reasons: [...]`
 
 Crop-only edits do not count as a structural override. The profile remains a default; the scene JSON remains the project-owned authority.
+
+
+## Font behavior
+
+Generated lettering in an image preview is not automatically a real font family. ToonDesk therefore separates:
+- semantic font intent
+- preferred real font family
+- fallback chain
+- runtime-resolved family
+
+The built-in webfont set includes Jua, Do Hyeon, Gowun Dodum, Gaegu, Nanum Pen Script, Black Han Sans, Nanum Gothic, Hi Melody and Noto Sans KR. If the preferred family cannot be loaded, ToonDesk reports the substitution in the inspector and export manifest. Preview and export use the same resolver.
