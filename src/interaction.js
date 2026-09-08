@@ -2,7 +2,7 @@
    Viewport, selection, direct manipulation
    ============================================================ */
 
-const view = { z: 0.5, px: 0, py: 0 };
+const view = { z: 0.5, px: 0, py: 0, guides: false };
 const sel = { ids: new Set(), enter: null, crop: null, editing: null };
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 const MINSZ = 24;
@@ -109,6 +109,20 @@ function handleAt(px, py) {
   }
   return null;
 }
+function bubbleTailHandles(o) {
+  const t=bubbleTailData(o); if(!t) return null;
+  const a=bubbleTailAttachPoint(o,t);
+  return { tip:{x:t.tip_x,y:t.tip_y}, attach:a };
+}
+function bubbleTailHandleAt(o, px, py) {
+  if(!o || o.type!=='bubble' || o.locked) return null;
+  const h=bubbleTailHandles(o); if(!h) return null;
+  const tol=12/view.z;
+  if(Math.hypot(px-h.tip.x,py-h.tip.y)<=tol) return 'tailTip';
+  if(Math.hypot(px-h.attach.x,py-h.attach.y)<=tol) return 'tailAttach';
+  return null;
+}
+
 
 /* ---------- snapping ---------- */
 function snapTargets() {
@@ -116,10 +130,25 @@ function snapTargets() {
   const fr = p.page.page_type === 'cover' ? SHELL.cover_hero_frame : SHELL.body_artwork_frame;
   vs.push(fr.x, fr.x + fr.width / 2, fr.x + fr.width);
   hs.push(fr.y, fr.y + fr.height / 2, fr.y + fr.height);
+
   if (p.page.page_type === 'cover') {
     const t = SHELL.cover_title_safe;
-    vs.push(t.x, t.x + t.width); hs.push(t.y, t.y + t.height);
-  } else SHELL.body_bands.forEach(b => { hs.push(b.y, b.y + b.height); vs.push(b.x, b.x + b.width); });
+    if(t){vs.push(t.x,t.x+t.width/2,t.x+t.width);hs.push(t.y,t.y+t.height/2,t.y+t.height);}
+  } else {
+    const si=SHELL.body_safe_inset;
+    if(si){vs.push(si.left,W-si.right);hs.push(si.top,H-si.bottom);}
+    SHELL.body_bands.forEach(b => { hs.push(b.y, b.y + b.height); vs.push(b.x, b.x + b.width); });
+  }
+
+  for(const g of (p.page.placement_guides||[])){
+    if(Number.isFinite(g.x)&&Number.isFinite(g.width))vs.push(g.x,g.x+g.width/2,g.x+g.width);
+    if(Number.isFinite(g.y)&&Number.isFinite(g.height))hs.push(g.y,g.y+g.height/2,g.y+g.height);
+  }
+  for(const a of (p.page.avoid_regions||[])){
+    if(Number.isFinite(a.x)&&Number.isFinite(a.width))vs.push(a.x,a.x+a.width);
+    if(Number.isFinite(a.y)&&Number.isFinite(a.height))hs.push(a.y,a.y+a.height);
+  }
+
   for (const o of objs(p)) {
     if (sel.ids.has(o.id) || o.visible === false) continue;
     const r = rectOf(o);
@@ -146,12 +175,17 @@ function moveSel(dx, dy) {
   for (const o of selObjs()) {
     if (!movable(o)) continue;
     o.x = round2(o.x + dx); o.y = round2(o.y + dy);
-    if (o.tail_to) { o.tail_to.x = round2(o.tail_to.x + dx); o.tail_to.y = round2(o.tail_to.y + dy); }
+    shiftTailGeometry(o,dx,dy);
   }
 }
 function scaleObj(o, sx, sy, ox, oy, scaleFont) {
   o.x = round2(ox + (o.x - ox) * sx); o.y = round2(oy + (o.y - oy) * sy);
   o.width = round2(Math.max(MINSZ, o.width * sx)); o.height = round2(Math.max(MINSZ, o.height * sy));
+  if (o.tail) {
+    o.tail.tip_x = round2(ox + (o.tail.tip_x - ox) * sx);
+    o.tail.tip_y = round2(oy + (o.tail.tip_y - oy) * sy);
+    o.tail.base_width = round2(Math.max(8,(o.tail.base_width||56)*(sx+sy)/2));
+  }
   if (o.tail_to) { o.tail_to.x = round2(ox + (o.tail_to.x - ox) * sx); o.tail_to.y = round2(oy + (o.tail_to.y - oy) * sy); }
   if (scaleFont && o.font) o.font.size = Math.max(8, Math.round(o.font.size * (sx + sy) / 2));
   if (o.radius) o.radius = round2(o.radius * (sx + sy) / 2);
@@ -178,9 +212,15 @@ function resizeSingle(o, handle, pw, ph, keepRatio, scaleFont) {
   nx += wOld.x - wNew.x; ny += wOld.y - wNew.y;
 
   const sx = nw / r.w, sy = nh / r.h;
-  const tail = o.tail_to ? { x: o.tail_to.x, y: o.tail_to.y } : null;
+  const tail = o.tail ? { ...o.tail } : (o.tail_to ? { legacy:true, x:o.tail_to.x, y:o.tail_to.y } : null);
   o.x = round2(nx); o.y = round2(ny); o.width = round2(nw); o.height = round2(nh);
-  if (tail) { o.tail_to.x = round2(nx + (tail.x - r.x) * sx); o.tail_to.y = round2(ny + (tail.y - r.y) * sy); }
+  if (tail && !tail.legacy) {
+    o.tail.tip_x = round2(nx + (tail.tip_x - r.x) * sx);
+    o.tail.tip_y = round2(ny + (tail.tip_y - r.y) * sy);
+    o.tail.base_width = round2(Math.max(8,(tail.base_width||56)*(sx+sy)/2));
+  } else if (tail) {
+    o.tail_to.x = round2(nx + (tail.x - r.x) * sx); o.tail_to.y = round2(ny + (tail.y - r.y) * sy);
+  }
   if (scaleFont && o.font && handle.length === 2) o.font.size = Math.max(8, Math.round(o.font.size * (sx + sy) / 2));
   if (o.radius) o.radius = round2(o.radius * (sx + sy) / 2);
 }
@@ -189,15 +229,33 @@ function resizeSingle(o, handle, pw, ph, keepRatio, scaleFont) {
 function drawOverlay(ctx) {
   const p = curPage(), z = view.z, px = 1 / z;
   ctx.save();
-  const fr = p.page.page_type === 'cover' ? SHELL.cover_hero_frame : SHELL.body_artwork_frame;
-  ctx.setLineDash([7 * px, 6 * px]); ctx.lineWidth = px;
-  ctx.strokeStyle = 'rgba(220,85,43,.45)';
-  ctx.strokeRect(fr.x, fr.y, fr.width, fr.height);
-  ctx.strokeStyle = 'rgba(27,127,209,.32)';
-  if (p.page.page_type === 'cover') {
-    const t = SHELL.cover_title_safe; ctx.strokeRect(t.x, t.y, t.width, t.height);
-  } else SHELL.body_bands.forEach(b => ctx.strokeRect(b.x, b.y, b.width, b.height));
-  ctx.setLineDash([]);
+  if(view.guides){
+    const fr = p.page.page_type === 'cover' ? SHELL.cover_hero_frame : SHELL.body_artwork_frame;
+    ctx.setLineDash([7 * px, 6 * px]); ctx.lineWidth = px;
+    ctx.strokeStyle = 'rgba(220,85,43,.45)';
+    ctx.strokeRect(fr.x, fr.y, fr.width, fr.height);
+    ctx.strokeStyle = 'rgba(27,127,209,.38)';
+    if (p.page.page_type === 'cover') {
+      const t = SHELL.cover_title_safe; if(t)ctx.strokeRect(t.x, t.y, t.width, t.height);
+    } else {
+      const si=SHELL.body_safe_inset;
+      if(si)ctx.strokeRect(si.left,si.top,W-si.left-si.right,H-si.top-si.bottom);
+      SHELL.body_bands.forEach(b => ctx.strokeRect(b.x, b.y, b.width, b.height));
+    }
+    for(const g of (p.page.placement_guides||[])){
+      ctx.strokeStyle='rgba(27,127,209,.45)';
+      ctx.strokeRect(g.x,g.y,g.width,g.height);
+    }
+    for(const a of (p.page.avoid_regions||[])){
+      ctx.fillStyle='rgba(185,55,39,.08)';
+      ctx.strokeStyle='rgba(185,55,39,.55)';
+      ctx.fillRect(a.x,a.y,a.width,a.height); ctx.strokeRect(a.x,a.y,a.width,a.height);
+      ctx.fillStyle='rgba(185,55,39,.8)';
+      ctx.font=`${14*px}px sans-serif`; ctx.textAlign='left';ctx.textBaseline='top';
+      ctx.fillText(a.role||'avoid',a.x+4*px,a.y+4*px);
+    }
+    ctx.setLineDash([]);
+  }
 
   if (liveGuides.length) {
     ctx.strokeStyle = '#E0562B'; ctx.lineWidth = px;
@@ -250,9 +308,14 @@ function drawOverlay(ctx) {
       ctx.setLineDash([5 * px, 4 * px]); ctx.strokeStyle = '#DC552B';
       ctx.strokeRect(b.x, b.y, b.w, b.h); ctx.setLineDash([]);
     }
-    if (one && one.tail_to && !one.locked) {
-      ctx.fillStyle = '#DC552B';
-      ctx.beginPath(); ctx.arc(one.tail_to.x, one.tail_to.y, 6 * px, 0, 7); ctx.fill();
+    if (one && one.type==='bubble' && bubbleTailData(one) && !one.locked) {
+      const h=bubbleTailHandles(one);
+      if(h){
+        ctx.setLineDash([4*px,4*px]);ctx.strokeStyle='rgba(220,85,43,.65)';ctx.lineWidth=px;
+        ctx.beginPath();ctx.moveTo(h.attach.x,h.attach.y);ctx.lineTo(h.tip.x,h.tip.y);ctx.stroke();ctx.setLineDash([]);
+        ctx.fillStyle='#DC552B';ctx.beginPath();ctx.arc(h.tip.x,h.tip.y,6*px,0,7);ctx.fill();
+        ctx.fillStyle='#fff';ctx.strokeStyle='#DC552B';ctx.lineWidth=2*px;ctx.beginPath();ctx.arc(h.attach.x,h.attach.y,6*px,0,7);ctx.fill();ctx.stroke();
+      }
     }
   }
   ctx.restore();
