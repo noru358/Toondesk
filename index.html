@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>툰데스크</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Jua&family=Do+Hyeon&family=Gowun+Dodum&family=Gaegu:wght@400;700&family=Nanum+Pen+Script&family=Black+Han+Sans&family=Nanum+Gothic:wght@400;700;800&family=Hi+Melody&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div class="brand"><b>툰데스크</b><span>Scene Model V1</span></div>
+    <button class="btn icon mobonly" id="tgLeft" title="왼쪽 패널">☰</button>
+    <div class="docname"><input id="docName" value="UNTITLED" aria-label="문서 이름" spellcheck="false"><span class="docmeta" id="docMeta">1 페이지</span></div>
+    <div class="spacer"></div>
+    <div class="seg"><button class="btn icon" id="btnUndo" title="되돌리기 (Ctrl+Z)">↶</button><button class="btn icon" id="btnRedo" title="다시 실행 (Ctrl+Shift+Z)">↷</button></div>
+    <span class="sep"></span>
+    <button class="btn" id="btnOpen">열기</button>
+    <button class="btn" id="btnPaste">JSON 붙여넣기</button>
+    <button class="btn" id="btnTheme" title="테마 전환">◐</button>
+    <button class="btn primary" id="btnExport">내보내기</button>
+    <button class="btn icon mobonly" id="tgRight" title="오른쪽 패널">⋮</button>
+  </div>
+  <div class="work">
+    <aside class="panel left" id="panelLeft">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="pages" aria-selected="true">페이지</button>
+        <button class="tab" role="tab" data-tab="assets" aria-selected="false">아트워크</button>
+        <button class="tab" role="tab" data-tab="add" aria-selected="false">추가</button>
+      </div>
+      <div class="scroll">
+        <div id="tabPages">
+          <div class="pagelist" id="pageList"></div>
+          <div class="sect"><div class="body" style="padding-top:9px"><div class="grid2"><button class="btn" id="btnDupPage">페이지 복제</button><button class="btn" id="btnNewPage">빈 페이지</button></div></div></div>
+        </div>
+        <div id="tabAssets" hidden>
+          <div class="dropzone" id="dzAssets"><b>아트워크 드롭</b><code>artwork/S01.png</code>처럼 source와 파일 이름이 맞으면 자동 연결됩니다.</div>
+          <div class="assets" id="assetGrid"></div>
+        </div>
+        <div id="tabAdd" hidden>
+          <div class="addgrid">
+            <button class="addbtn" data-add="speech">말풍선<span>대사 + 풍선</span></button>
+            <button class="addbtn" data-add="thought">생각상자<span>속마음</span></button>
+            <button class="addbtn" data-add="narration">나레이션<span>텍스트</span></button>
+            <button class="addbtn" data-add="sfx">효과음<span>SFX</span></button>
+            <button class="addbtn" data-add="shape">도형<span>오버레이</span></button>
+            <button class="addbtn" data-add="title">타이틀<span>커버 문구</span></button>
+          </div>
+          <div class="sect"><h3>레이어 규약</h3><div class="body hint">의미를 가진 글자는 lettering(z 10–99), 장식은 overlay(z 100–199). 아트워크 프레임은 기본 잠금이지만 사용자가 잠금을 풀면 위치·크기·회전을 직접 override할 수 있습니다.</div></div>
+        </div>
+      </div>
+    </aside>
+    <section class="center">
+      <div class="ctxbar" id="ctxbar"></div>
+      <div class="viewport" id="viewport"><canvas id="board"></canvas><div id="edwrap"><textarea id="editor" spellcheck="false"></textarea></div></div>
+      <div class="statusbar"><span id="stSel">선택 없음</span><span class="spacer"></span><span class="mono" id="stCoord">1080 × 1350</span><span class="sep"></span><button class="btn icon" id="btnZoomOut">−</button><span class="mono" id="stZoom">50%</span><button class="btn icon" id="btnZoomIn">＋</button><button class="btn" id="btnZoomFit">맞춤</button></div>
+    </section>
+    <aside class="panel right" id="panelRight">
+      <div class="scroll">
+        <div class="sect"><h3>레이어<span class="spacer"></span><span class="mono" id="layerCount"></span></h3><div class="layerlist" id="layerList"></div></div>
+        <div class="sect" id="propSect"><h3>위치 · 크기</h3><div class="body" id="propBody"></div></div>
+        <div class="sect"><h3>페이지</h3><div class="body" id="pageProps"></div></div>
+        <div class="sect"><h3>검사<span class="spacer"></span><span id="inspectPill"></span></h3><div id="inspectList"></div></div>
+      </div>
+    </aside>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="modal"><div class="sheet"><header><h2 id="mTitle">제목</h2><span class="spacer"></span><button class="btn icon" id="mClose">✕</button></header><div class="in" id="mBody"></div><footer id="mFoot"></footer></div></div>
+<input type="file" id="filePick" multiple hidden accept=".json,.png,.jpg,.jpeg,.webp,.toondesk">
+<input type="file" id="dirPick" multiple hidden webkitdirectory directory>
+<script src="src/core.js"></script>
+<script src="src/render.js"></script>
+<script src="src/editor.js"></script>
+<script src="src/io-ui.js"></script>
+</body>
+</html>
