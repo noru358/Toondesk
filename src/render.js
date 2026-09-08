@@ -72,7 +72,8 @@ const svgD = cmds => cmds.map(c => c[0] + c.slice(1).map(n => round2(n)).join(' 
 function fontString(o) {
   const f = o.font || {};
   const size = f.size || 40, weight = f.weight || 400;
-  return { css: `${weight} ${size}px ${fontCssFor(f.family_intent).css}`, size, weight, lh: (f.line_height || 1.15) };
+  const resolved = fontCssFor(f);
+  return { css: `${weight} ${size}px ${resolved.css}`, size, weight, lh: (f.line_height || 1.15), font_resolution: resolved };
 }
 function wrapPara(text, maxW) {
   const out = [], chars = [...text];
@@ -214,7 +215,7 @@ function pageToSVG(page) {
     } else if (o.type === 'text' || o.type === 'sfx') {
       const L = layoutText(o), A = textAnchors(o, L);
       const anch = A.align === 'left' ? 'start' : A.align === 'right' ? 'end' : 'middle';
-      const fam = fontCssFor((o.font || {}).family_intent).css.replace(/"/g, "'");
+      const fam = fontCssFor(o.font || {}).css.replace(/"/g, "'");
       const strokeAttr = o.stroke && o.stroke !== 'none' && o.stroke_width
         ? ` stroke="${o.stroke}" stroke-width="${o.stroke_width}" paint-order="stroke" stroke-linejoin="round"` : '';
       parts.push(`<g${rot} font-family="${fam}" font-size="${L.size}" font-weight="${L.weight}" fill="${o.fill || '#221f1d'}" text-anchor="${anch}"${strokeAttr}>`);
