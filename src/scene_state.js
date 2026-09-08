@@ -83,6 +83,10 @@
   function mergePage(current, incoming) {
     if (!current) return deepClone(incoming);
     const out = deepClone(incoming);
+    out.layout_meta = { ...(deepClone(current.layout_meta) || {}), ...(deepClone(incoming.layout_meta) || {}) };
+    out.page = { ...(deepClone(current.page) || {}), ...(deepClone(incoming.page) || {}) };
+    if (current.page?.artwork_provenance) out.page.artwork_provenance = deepClone(current.page.artwork_provenance);
+    if (current.page?.cover_artwork_provenance) out.page.cover_artwork_provenance = deepClone(current.page.cover_artwork_provenance);
     const currentById = new Map((current.objects || []).map(o => [o.id,o]));
     const incomingIds = new Set((out.objects || []).map(o => o.id));
     out.objects = (out.objects || []).map(o => mergeObject(currentById.get(o.id), o));
