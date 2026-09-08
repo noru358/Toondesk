@@ -30,7 +30,13 @@ let SHELL = {
   },
   typography_roles: {},
   default_page_structure: null,
-  default_artwork_locked: true
+  default_artwork_locked: true,
+  speech_style: {
+    body_style: 'soft_oval',
+    stroke_width: 3,
+    radius_ratio: .48,
+    tail: { default_base_width: 42, default_curve: .72 }
+  }
 };
 
 function applyShellProfile(data) {
@@ -58,7 +64,8 @@ function applyShellProfile(data) {
     semantic_regions: body.semantic_placement || SHELL.semantic_regions,
     typography_roles: data.typography_roles || {},
     default_page_structure: pageStructure,
-    default_artwork_locked: bodyFrame.default_locked !== false
+    default_artwork_locked: bodyFrame.default_locked !== false,
+    speech_style: data.lettering?.speech || SHELL.speech_style
   };
   doc.template_id = SHELL.template_id;
   const st = $('#stCoord'); if (st) st.textContent = `${W} × ${H}`;
@@ -399,19 +406,34 @@ function makeParts(p, kind) {
     const bx = p.page.page_type === 'cover' ? 70 : (inset.left || 48);
     const by = p.page.page_type === 'cover' ? 400 : (isS ? (inset.top || 48) + 40 : H - (inset.bottom || 48) - 190);
     const bw = p.page.page_type === 'cover' ? 900 : Math.min(760, W - (inset.left || 48) - (inset.right || 48));
-    const bh = 140;
+    const speechCfg = SHELL.speech_style || {};
+    const bh = isS ? 160 : 140;
     const box = {
       id: uid(isS ? 'bub' : 'thg'), type: isS ? 'bubble' : 'thought_box', role: isS ? 'speech' : 'inner_thought',
-      x: bx, y: by, width: bw, height: bh, radius: isS ? 44 : 18,
-      fill: isS ? '#ffffff' : '#fff7e8', stroke: isS ? '#221f1d' : '#b7a995', stroke_width: isS ? 4 : 2,
+      x: bx, y: by, width: bw, height: bh,
+      radius: isS ? Math.round(bh * (speechCfg.radius_ratio ?? .48)) : 18,
+      body_style: isS ? (speechCfg.body_style || 'soft_oval') : undefined,
+      fill: isS ? (speechCfg.fill || '#ffffff') : '#fff7e8',
+      stroke: isS ? (speechCfg.stroke || '#221f1d') : '#b7a995',
+      stroke_width: isS ? (speechCfg.stroke_width ?? 3) : 2,
       z, visible: true, rotation: 0, locked: false, group_id: gid
     };
-    if (isS) box.tail = { enabled:true, style:'soft_curved', tip_x:bx + bw * .55, tip_y:by + bh + 95, attach_side:'bottom', attach:.55, base_width:56, curve:.58 };
+    if (isS) {
+      const tc = speechCfg.tail || {};
+      box.tail = {
+        enabled:true, style:'soft_curved',
+        tip_x:bx + bw * .55, tip_y:by + bh + 82,
+        attach_side:tc.default_attach_side || 'bottom',
+        attach:tc.default_attach ?? .55,
+        base_width:tc.default_base_width ?? 42,
+        curve:tc.default_curve ?? .72
+      };
+    }
     const rp = ROLE[isS ? 'speech' : 'inner_thought'];
     const txt = {
       id: uid('txt'), type: 'text', role: isS ? 'speech' : 'inner_thought',
       text: isS ? '여기에 대사' : '여기에 속마음',
-      x: bx + 28, y: by + 22, width: bw - 56, height: bh - 44,
+      x: bx + 34, y: by + 24, width: bw - 68, height: bh - 48,
       font: fontDefaults(isS ? 'speech' : 'inner_thought', 'friendly_round_body'), fill: '#221f1d',
       align: 'center', rotation: 0, z: z + 1, visible: true, locked: false, group_id: gid
     };
