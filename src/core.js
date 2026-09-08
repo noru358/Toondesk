@@ -115,9 +115,11 @@ const fontCssFor = spec => {
   const preferred = cfg.preferred_family || INTENT_MAP[intent] || (FONTS.some(f => f.id === intent) ? intent : 'Jua');
   const fallback = Array.isArray(cfg.fallback_families) ? cfg.fallback_families : [];
   const chain = [...new Set([preferred, ...fallback, 'Noto Sans KR', 'sans-serif'].filter(Boolean))];
-  const isAvailable = id => id === 'sans-serif' || !document.fonts || document.fonts.check('16px ' + quoteFont(id));
+  const weight = cfg.weight || 400;
+  const sample = String(cfg.sample_text || cfg.text || '한글Aa');
+  const isAvailable = id => id === 'sans-serif' || !document.fonts || document.fonts.check(weight + ' 16px ' + quoteFont(id), sample);
   const resolved = chain.find(isAvailable) || preferred;
-  return { id: preferred, preferred, resolved, available: isAvailable(preferred), chain, css: chain.map(quoteFont).join(', ') };
+  return { id: preferred, preferred, resolved, available: isAvailable(preferred), chain, css: chain.map(quoteFont).join(', '), weight };
 };
 function fontDefaults(roleName, fallbackIntent) {
   const rp = ROLE[roleName] || ROLE.narration;
