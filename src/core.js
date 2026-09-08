@@ -130,6 +130,24 @@ function fontDefaults(roleName, fallbackIntent) {
     size: prof.nominal_size ?? rp.nominal
   };
 }
+async function ensureFontLoaded(family, weight=400) {
+  if (!family || family === 'sans-serif' || !document.fonts?.load) return true;
+  try {
+    await document.fonts.load(`${weight} 16px ${quoteFont(family)}`);
+    return document.fonts.check(`${weight} 16px ${quoteFont(family)}`);
+  } catch { return false; }
+}
+async function ensureProjectFonts() {
+  const req=[];
+  for (const p of doc.pages || []) for (const o of p.objects || []) {
+    if (o.type !== 'text' && o.type !== 'sfx') continue;
+    const f=o.font||{}, family=f.preferred_family || INTENT_MAP[f.family_intent] || f.family_intent;
+    if (family) req.push([family,f.weight||400]);
+  }
+  const uniq=[...new Map(req.map(x=>[x.join('|'),x])).values()];
+  await Promise.all(uniq.map(([family,weight])=>ensureFontLoaded(family,weight)));
+}
+
 
 const ICON = {
   eye:     '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.6 8S3.9 3.8 8 3.8 14.4 8 14.4 8 12.1 12.2 8 12.2 1.6 8 1.6 8Z"/><circle cx="8" cy="8" r="1.9"/></svg>',
@@ -147,6 +165,75 @@ const round2 = n => Math.round(n * 100) / 100;
 const uid = p => p + '_' + Math.random().toString(36).slice(2, 8);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const baseName = p => String(p || '').split('/').pop();
+function bubbleTailData(o) {
+  if (!o || o.type !== 'bubble') return null;
+  if (o.tail && o.tail.enabled === false) return null;
+  const r = rectOf(o);
+  if (o.tail) {
+    return {
+      enabled: true,
+      style: o.tail.style || 'soft_curved',
+      tip_x: Number.isFinite(o.tail.tip_x) ? o.tail.tip_x : r.x + r.w * .55,
+      tip_y: Number.isFinite(o.tail.tip_y) ? o.tail.tip_y : r.y + r.h + 95,
+      attach_side: o.tail.attach_side || 'bottom',
+      attach: clamp(Number.isFinite(o.tail.attach) ? o.tail.attach : .55, 0, 1),
+      base_width: Math.max(8, Number.isFinite(o.tail.base_width) ? o.tail.base_width : 56),
+      curve: clamp(Number.isFinite(o.tail.curve) ? o.tail.curve : .58, 0, 1)
+    };
+  }
+  if (o.tail_to) {
+    const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+    const dx = (o.tail_to.x - cx) / Math.max(1, r.w / 2), dy = (o.tail_to.y - cy) / Math.max(1, r.h / 2);
+    const side = Math.abs(dy) > Math.abs(dx) ? (dy < 0 ? 'top' : 'bottom') : (dx < 0 ? 'left' : 'right');
+    let attach = .5;
+    if (side === 'top' || side === 'bottom') attach = clamp((o.tail_to.x - r.x) / Math.max(1, r.w), .08, .92);
+    else attach = clamp((o.tail_to.y - r.y) / Math.max(1, r.h), .08, .92);
+    return { enabled:true, style:'soft_curved', tip_x:o.tail_to.x, tip_y:o.tail_to.y, attach_side:side, attach, base_width:56, curve:.58, legacy:true };
+  }
+  return null;
+}
+function ensureBubbleTail(o) {
+  if (!o || o.type !== 'bubble') return null;
+  const t = bubbleTailData(o) || {
+    enabled:true, style:'soft_curved',
+    tip_x:o.x + o.width * .55, tip_y:o.y + o.height + 95,
+    attach_side:'bottom', attach:.55, base_width:56, curve:.58
+  };
+  o.tail = { enabled:true, style:t.style, tip_x:t.tip_x, tip_y:t.tip_y, attach_side:t.attach_side, attach:t.attach, base_width:t.base_width, curve:t.curve };
+  if (o.tail_to) delete o.tail_to;
+  return o.tail;
+}
+function bubbleTailAttachPoint(o, tail = bubbleTailData(o)) {
+  if (!tail) return null;
+  const r = rectOf(o), rad = Math.max(0, Math.min(o.radius ?? 18, r.w/2, r.h/2));
+  const side = tail.attach_side || 'bottom';
+  const a = clamp(tail.attach ?? .5, 0, 1);
+  if (side === 'top') return { x:r.x + rad + (r.w - 2*rad)*a, y:r.y };
+  if (side === 'right') return { x:r.x+r.w, y:r.y + rad + (r.h - 2*rad)*a };
+  if (side === 'left') return { x:r.x, y:r.y + r.h - rad - (r.h - 2*rad)*a };
+  return { x:r.x + r.w - rad - (r.w - 2*rad)*a, y:r.y+r.h };
+}
+function nearestBubbleAttachment(o, px, py) {
+  const r=rectOf(o), rad=Math.max(0,Math.min(o.radius??18,r.w/2,r.h/2));
+  const candidates=[];
+  const seg=(side, ax,ay,bx,by)=>{
+    const vx=bx-ax,vy=by-ay,den=vx*vx+vy*vy||1;
+    const t=clamp(((px-ax)*vx+(py-ay)*vy)/den,0,1);
+    const x=ax+vx*t,y=ay+vy*t;
+    candidates.push({side,attach:t,x,y,d:Math.hypot(px-x,py-y)});
+  };
+  seg('top',r.x+rad,r.y,r.x+r.w-rad,r.y);
+  seg('right',r.x+r.w,r.y+rad,r.x+r.w,r.y+r.h-rad);
+  seg('bottom',r.x+r.w-rad,r.y+r.h,r.x+rad,r.y+r.h);
+  seg('left',r.x,r.y+r.h-rad,r.x,r.y+rad);
+  candidates.sort((a,b)=>a.d-b.d);
+  return candidates[0];
+}
+function shiftTailGeometry(o, dx, dy) {
+  if (o.tail) { o.tail.tip_x=round2((o.tail.tip_x??0)+dx); o.tail.tip_y=round2((o.tail.tip_y??0)+dy); }
+  if (o.tail_to) { o.tail_to.x=round2(o.tail_to.x+dx); o.tail_to.y=round2(o.tail_to.y+dy); }
+}
+
 
 function toast(msg, ms = 2200) {
   const t = $('#toast'); t.textContent = msg; t.classList.add('show');
@@ -304,7 +391,7 @@ function makeParts(p, kind) {
       fill: isS ? '#ffffff' : '#fff7e8', stroke: isS ? '#221f1d' : '#b7a995', stroke_width: isS ? 4 : 2,
       z, visible: true, rotation: 0, locked: false, group_id: gid
     };
-    if (isS) box.tail_to = { x: bx + bw * .55, y: by + bh + 95 };
+    if (isS) box.tail = { enabled:true, style:'soft_curved', tip_x:bx + bw * .55, tip_y:by + bh + 95, attach_side:'bottom', attach:.55, base_width:56, curve:.58 };
     const rp = ROLE[isS ? 'speech' : 'inner_thought'];
     const txt = {
       id: uid('txt'), type: 'text', role: isS ? 'speech' : 'inner_thought',
