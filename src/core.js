@@ -264,7 +264,7 @@ function makeParts(p, kind) {
   if (kind === 'speech' || kind === 'thought') {
     const isS = kind === 'speech';
     const gid = ensureGroup(p, nextGroupIndex(p, isS ? 'speech' : 'thought'), isS ? 'speech' : 'inner_thought', let_);
-    const bx = 90, by = p.page.page_type === 'cover' ? 400 : 1180, bw = 900, bh = 140;
+    const bx = 90, by = p.page.page_type === 'cover' ? 400 : (isS ? 120 : (SHELL.body_bands[0]?.y || 1080)), bw = 900, bh = 140;
     const box = {
       id: uid(isS ? 'bub' : 'thg'), type: isS ? 'bubble' : 'thought_box', role: isS ? 'speech' : 'inner_thought',
       x: bx, y: by, width: bw, height: bh, radius: isS ? 44 : 18,
@@ -288,7 +288,7 @@ function makeParts(p, kind) {
     const o = {
       id: uid('txt'), type: isX ? 'sfx' : 'text', role: isT ? 'title' : isX ? 'food_contact' : 'narration',
       text: isT ? '타이틀' : isX ? '톡' : '나레이션 문장',
-      x: isT ? 60 : 90, y: isT ? 132 : isX ? 640 : 60, width: isT ? 900 : isX ? 260 : 900, height: isT ? 100 : isX ? 100 : 90,
+      x: isT ? 60 : 90, y: isT ? 132 : isX ? 640 : (SHELL.body_bands[0]?.y || 1080), width: isT ? 900 : isX ? 260 : 900, height: isT ? 100 : isX ? 100 : 90,
       font: { family_intent: isX ? 'handdrawn_display' : 'NanumSquareRound', weight: rp.weight, size: rp.nominal },
       fill: isT ? '#221f1d' : isX ? '#e0562b' : '#221f1d',
       align: isT ? 'left' : 'center', rotation: isX ? -8 : 0, z, visible: true, locked: false, group_id: gid
