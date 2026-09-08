@@ -78,3 +78,21 @@ The FINAL_PUBLISH_GATE preview must be rendered from the exact same composition 
 ## Automatic production rule
 
 For normal Chat-mode episode assembly, use the V2 full-art default without inventing per-episode artwork-frame changes. Lettering placement remains fluid and focal-aware. Custom artwork-frame geometry is for explicit human/editor override, not routine automatic variation.
+
+
+## COVER provenance
+
+When a COVER artwork/crop is selected for the final-preview candidate, persist `page.cover_artwork_provenance` with the source and crop. Presentation-only repairs may move/reline title/menu/decor but must not silently replace the cover artwork with another BODY source.
+
+Use cover `avoid_regions` for face/food/hand focal subjects. Reflow lettering before covering those regions.
+
+## Speech bubble tails
+
+New speech bubbles should use the rich `tail` object rather than only legacy `tail_to`:
+- `style: soft_curved`
+- `tip_x`, `tip_y`
+- `attach_side`, `attach`
+- `base_width`
+- `curve`
+
+Keep text and bubble geometry separate. Tail geometry is independently editable and must survive package round trips.
