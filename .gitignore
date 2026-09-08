@@ -2,3 +2,5 @@
 *.package.json
 *.toondesk.json
 *.zip
+node_modules/
+dist/
