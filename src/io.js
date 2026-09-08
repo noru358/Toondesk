@@ -65,12 +65,60 @@ async function handleFiles(files) {
 }
 
 let desktopProjectPath = null;
+let browserProjectHandle = null;
+
+async function openBrowserProjectNative() {
+  if (!window.showOpenFilePicker) return null;
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      multiple: false,
+      types: [{
+        description: 'ToonDesk Project',
+        accept: { 'application/json': ['.toondesk', '.json'] }
+      }]
+    });
+    if (!handle) return null;
+    const file = await handle.getFile();
+    browserProjectHandle = handle;
+    return { name: file.name, path: null, text: await file.text() };
+  } catch (e) {
+    if (e?.name === 'AbortError') return null;
+    throw e;
+  }
+}
+
+async function saveBrowserProjectNative(text, forceAs = false) {
+  if (!window.showSaveFilePicker) return false;
+  try {
+    let handle = (!forceAs && browserProjectHandle) ? browserProjectHandle : null;
+    if (!handle) {
+      handle = await window.showSaveFilePicker({
+        suggestedName: doc.name + '.toondesk',
+        types: [{
+          description: 'ToonDesk Project',
+          accept: { 'application/json': ['.toondesk'] }
+        }]
+      });
+    }
+    const writable = await handle.createWritable();
+    await writable.write(new Blob([text], { type: 'application/json' }));
+    await writable.close();
+    browserProjectHandle = handle;
+    toast('프로젝트 저장 완료');
+    return true;
+  } catch (e) {
+    if (e?.name === 'AbortError') return false;
+    toast('브라우저 저장 실패: ' + (e?.message || e), 3200);
+    return false;
+  }
+}
 async function loadDesktopProject(payload) {
   if (!payload?.text) return false;
   try {
     const f = new File([payload.text], payload.name || 'project.toondesk', { type: 'application/json' });
     await handleFiles([f]);
     desktopProjectPath = payload.path || null;
+    if (payload.path) browserProjectHandle = null;
     return true;
   } catch (e) {
     toast('프로젝트 열기 실패: ' + (e?.message || e), 3200);
@@ -96,6 +144,7 @@ async function saveProjectSession(forceAs = false) {
     }
     return false;
   }
+  if (window.showSaveFilePicker) return saveBrowserProjectNative(text, forceAs);
   return saveText(text, doc.name + '.toondesk');
 }
 async function readEntries(items) {
