@@ -107,16 +107,22 @@ ipcMain.handle('toondesk:open-project', async () => {
 });
 
 ipcMain.handle('toondesk:save-file', async (_event, payload) => {
-  const suggested = String(payload?.name || 'ToonDesk_export');
-  const r = await dialog.showSaveDialog(win, {
-    title: '저장',
-    defaultPath: suggested
-  });
-  if (r.canceled || !r.filePath) return { saved: false };
   const bytes = payload?.bytes;
   if (!bytes) throw new Error('No bytes supplied');
-  fs.writeFileSync(r.filePath, Buffer.from(bytes));
-  return { saved: true, path: r.filePath };
+
+  let target = payload?.path && !payload?.forceDialog ? String(payload.path) : null;
+  if (!target) {
+    const suggested = String(payload?.name || 'ToonDesk_export');
+    const r = await dialog.showSaveDialog(win, {
+      title: '저장',
+      defaultPath: suggested
+    });
+    if (r.canceled || !r.filePath) return { saved: false };
+    target = r.filePath;
+  }
+
+  fs.writeFileSync(target, Buffer.from(bytes));
+  return { saved: true, path: target };
 });
 
 ipcMain.handle('toondesk:take-pending-project', async () => {
