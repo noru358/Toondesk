@@ -1,5 +1,8 @@
 name: Desktop Build
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   push:
@@ -31,3 +34,18 @@ jobs:
           name: ToonDesk-windows
           path: dist/*.exe
           retention-days: 30
+
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ToonDesk-windows
+          path: release
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.exe
+          generate_release_notes: true
