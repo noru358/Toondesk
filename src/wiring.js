@@ -76,6 +76,7 @@ $('#btnOpen').onclick=()=>modal('프로젝트 열기',
   '<p>ToonDesk 세션(.toondesk), layout JSON, artwork 이미지, presentation-shell/profile JSON 또는 프로젝트 폴더를 불러올 수 있습니다.</p>'+
   '<div style="display:grid;gap:8px">'+
   (window.toondeskDesktop?'<button class="btn primary" id="oDesktop">ToonDesk 프로젝트 열기</button>':'')+
+  (!window.toondeskDesktop&&window.showOpenFilePicker?'<button class="btn primary" id="oWebNative">ToonDesk 프로젝트 열기</button>':'')+
   '<button class="btn" id="oDir">폴더 열기</button>'+
   '<button class="btn" id="oFiles">파일 선택</button><button class="btn" id="oBlank">새 빈 문서</button></div>',
   '<button class="btn" id="oCancel">닫기</button>',()=>{
@@ -83,6 +84,13 @@ $('#btnOpen').onclick=()=>modal('프로젝트 열기',
       closeModal();
       const payload=await window.toondeskDesktop.openProject();
       if(payload) await loadDesktopProject(payload);
+    };
+    if($('#oWebNative')) $('#oWebNative').onclick=async()=>{
+      closeModal();
+      try {
+        const payload=await openBrowserProjectNative();
+        if(payload) await loadDesktopProject(payload);
+      } catch(e) { toast('프로젝트 열기 실패: '+(e?.message||e),3200); }
     };
     $('#oDir').onclick=()=>{closeModal();$('#dirPick').click();};
     $('#oFiles').onclick=()=>{closeModal();$('#filePick').click();};
@@ -147,7 +155,7 @@ function loadBlank(){
   }
 
   const ver=await window.toondeskDesktop?.getVersion?.();
-  const av=$('#appVersion');if(av)av.textContent='Scene Model V1 · '+(ver?('v'+ver):'web');
+  const av=$('#appVersion');if(av)av.textContent='Scene Model V1 · '+(ver?('v'+ver):'WEB LIVE');
   await ensureProjectFonts();
   fitView();fullRefresh();syncUndo();
   document.fonts?.ready?.then(()=>fullRefresh());
