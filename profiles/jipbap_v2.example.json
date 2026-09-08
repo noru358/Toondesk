@@ -213,7 +213,14 @@
         "editable_numeric": [
           "base_width",
           "curve"
-        ]
+        ],
+        "max_auto_length": 180,
+        "auto_avoid_roles": [
+          "face_primary",
+          "food_primary",
+          "hand_action"
+        ],
+        "manual_length_unrestricted": true
       }
     },
     "inner_thought": {
