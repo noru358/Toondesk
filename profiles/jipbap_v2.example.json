@@ -13,7 +13,7 @@
     "allow_custom_override": true,
     "override_class": "CUSTOM_OVERRIDE",
     "override_is_scene_corruption": false,
-    "revision": "2026-09-09_PRESENTATION_MASTER_FIRST_V1"
+    "revision": "2026-09-09_MANUAL_OVERRIDE_PROVENANCE_V1"
   },
   "page_structure": {
     "automatic_default": {
@@ -81,6 +81,12 @@
       ],
       "structural_band_required": false,
       "lettering_move_is_custom_override": false
+    },
+    "artwork_source_policy": {
+      "mode": "accepted_board_cell",
+      "record_provenance": true,
+      "extraction_metadata_reuse": true,
+      "replacement_requires_explicit_override": true
     }
   },
   "cover": {
@@ -218,6 +224,13 @@
       "snap_to_placement_guides": true,
       "snap_to_avoid_region_edges": true,
       "export_visible": false
+    },
+    "manual_edit_policy": {
+      "preservation": "property_level",
+      "automatic_layout_preserves_manual": true,
+      "explicit_reset_scope_required": true,
+      "line_break_override_separate_from_literal_text": true,
+      "overflow_after_copy_change": "surface_attention_do_not_silent_shrink"
     }
   },
   "z_bands": {
@@ -418,6 +431,5 @@
     "target_provenance_required": true,
     "parity_qc_required_after_reconstruction": true,
     "routine_second_user_gate_after_parity": false
-  },
-  "_note": "NON_AUTHORITATIVE development mirror; canonical profile is noru358/jipbap/templates/JIPBAP_PRESENTATION_SHELL_V2.json"
+  }
 }
