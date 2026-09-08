@@ -33,6 +33,11 @@ jobs:
       - uses: actions/configure-pages@v5
         with:
           enablement: true
+      - name: Static JS/JSON checks
+        run: |
+          set -euo pipefail
+          for f in src/*.js; do node --check "$f"; done
+          node -e "JSON.parse(require('fs').readFileSync('profiles/jipbap_v2.example.json','utf8'));"
       - name: Build static site
         shell: bash
         run: |
