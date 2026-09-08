@@ -49,6 +49,8 @@ Current JIPBAP example profile:
 - artwork frames start locked but can be explicitly overridden in the editor
 - page structure starts at COVER 1 + BODY 6 but editor capabilities remain available
 - preferred real fonts plus fallbacks are supported; missing preferred fonts surface as QC warnings rather than silently changing appearance
+- BODY/COVER accepted-artwork provenance survives routine same-page reconstruction
+- manual lettering edits are preserved at property scope rather than by locking the whole object
 
 ## Run
 
@@ -97,6 +99,21 @@ ToonDesk does not treat profile deviation as corruption. On export it computes w
 
 Crop-only edits do not count as a structural override. The profile remains a default; the scene JSON remains the project-owned authority.
 
+## Non-destructive reconstruction
+
+ToonDesk 0.3.3 records user edits in optional `manual_overrides` on each scene object. These are property-level preservation markers, not object locks.
+
+Examples:
+- moving a bubble marks `position`
+- changing only explicit line breaks marks `line_breaks`
+- dragging a speech-tail tip marks `tail_tip`
+- changing typography marks `typography`
+- crop edits mark `crop`
+- a manually added object may carry `object_presence`
+
+When a same-ID layout is imported again, only marked properties are retained; unmarked properties may accept the incoming reconstruction. If upstream literal copy changes after a manual line-break edit, ToonDesk keeps the new copy and emits `LINE_BREAK_REVIEW_REQUIRED` instead of silently shrinking text or discarding the user's geometry.
+
+`artwork_provenance` and presentation-target metadata remain sticky during routine same-page reconstruction. Explicit artwork replacement is still allowed, but it is marked and reported rather than being confused with the accepted source.
 
 ## Font behavior
 
@@ -120,13 +137,21 @@ ToonDesk 0.3 adds the minimum direct-manipulation set needed for JIPBAP-style pr
 - deterministic "빈곳 배치" helper that scores available positions against avoid regions
 - font picker updates the real preferred family, not merely semantic intent
 - requested fonts are loaded before preview/export; fallback resolution is recorded in the export manifest
-- COVER artwork provenance can be recorded and is checked so presentation-only edits do not silently substitute another BODY image
+- accepted artwork provenance can be recorded for COVER and BODY and is checked so presentation-only edits do not silently substitute another source
+- explicit text padding is stored in scene data and interpreted by the shared text layout used for preview and PNG export
+- manual override markers are visible in the contextual toolbar; re-running `빈곳 배치` clears only the selected position override after an explicit scope prompt
 
 ## Build / release policy
 
-You do not need to manually rebuild every time during development.
-- every relevant push to `main` automatically produces a Windows development artifact through GitHub Actions
-- normal scene/profile-only changes that the installed editor already understands do not require a new binary
-- editor/runtime code changes require a new binary, but the build is automatic
+The hosted web editor is the normal rapid-update path.
+- relevant pushes to `main` run JS/JSON checks plus scene-state tests, then sync the exact `main` tree to `gh-pages`
+- desktop installers are **not** rebuilt on every `main` push
+- the `Desktop Build` workflow is tag/manual driven and runs the same scene-state tests before packaging
 - stable desktop releases are tag-driven: pushing `vX.Y.Z` builds the Windows executables and attaches them to a GitHub Release
-- auto-update is intentionally deferred until signing/release cadence is stable; use the latest dev artifact or tagged stable release in the meantime
+- auto-update is intentionally deferred until signing/release cadence is stable
+
+### Rendering limits
+
+Editor preview and PNG export share ToonDesk's Canvas scene renderer and text layout. SVG is generated from the same scene geometry/text data, but a different SVG rasterizer can produce different font metrics or antialiasing. ToonDesk therefore guarantees preservation of scene values, source identity and explicit text/layout intent—not pixel-perfect equality across unrelated rendering environments.
+
+Real-device mobile touch and browser visual parity must be tested on the target device/browser; static/unit tests do not substitute for that check.
