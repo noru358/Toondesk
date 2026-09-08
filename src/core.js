@@ -263,6 +263,19 @@ async function saveBlob(blob, name) {
       return false;
     }
   }
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({ suggestedName: name });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return true;
+    } catch (e) {
+      if (e?.name === 'AbortError') return false;
+      toast('브라우저 저장 실패: ' + (e?.message || e), 3000);
+      return false;
+    }
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
