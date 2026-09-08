@@ -23,35 +23,51 @@ function pEllipse(x, y, w, h) {
 }
 /* rounded rect whose outline absorbs the speech tail, so fill and stroke stay one shape */
 function pBubble(x, y, w, h, r, tail) {
-  if (!tail) return pRoundRect(x, y, w, h, r);
+  if (!tail || tail.enabled === false) return pRoundRect(x, y, w, h, r);
   r = Math.max(0, Math.min(r, w / 2, h / 2));
-  const cx = x + w / 2, cy = y + h / 2;
-  const dx = (tail.x - cx) / (w / 2), dy = (tail.y - cy) / (h / 2);
-  const side = Math.abs(dy) > Math.abs(dx) ? (dy < 0 ? 'top' : 'bottom') : (dx < 0 ? 'left' : 'right');
+
   const edges = {
     top:    [[x + r, y], [x + w - r, y]],
     right:  [[x + w, y + r], [x + w, y + h - r]],
     bottom: [[x + w - r, y + h], [x + r, y + h]],
     left:   [[x, y + h - r], [x, y + r]]
   };
-  const [A, B] = edges[side];
-  const vx = B[0] - A[0], vy = B[1] - A[1], len = Math.hypot(vx, vy) || 1;
-  const ux = vx / len, uy = vy / len;
-  const half = Math.max(10, Math.min(34, len / 4));
-  let t = ((tail.x - A[0]) * ux + (tail.y - A[1]) * uy) / len;
-  t = clamp(t, half / len, 1 - half / len);
-  const px = A[0] + vx * t, py = A[1] + vy * t;
-  const b1 = [px - ux * half, py - uy * half], b2 = [px + ux * half, py + uy * half];
+  const side = tail.attach_side || 'bottom';
+  const [A, B] = edges[side] || edges.bottom;
+  const vx = B[0]-A[0], vy=B[1]-A[1], len=Math.hypot(vx,vy)||1;
+  const ux=vx/len, uy=vy/len;
+  const attach=clamp(Number.isFinite(tail.attach)?tail.attach:.55,0,1);
+  const px=A[0]+vx*attach, py=A[1]+vy*attach;
+  const half=Math.max(4,Math.min((tail.base_width||56)/2,len*.42));
+  const b1=[px-ux*half,py-uy*half], b2=[px+ux*half,py+uy*half];
+  const tip=[Number.isFinite(tail.tip_x)?tail.tip_x:px,Number.isFinite(tail.tip_y)?tail.tip_y:py+95];
+  const curve=clamp(Number.isFinite(tail.curve)?tail.curve:.58,0,1);
 
-  const seq = ['top', 'right', 'bottom', 'left'];
-  const cmds = [['M', x + r, y]];
-  for (const s of seq) {
-    const [a, b] = edges[s];
-    if (s === side) { cmds.push(['L', b1[0], b1[1]], ['L', tail.x, tail.y], ['L', b2[0], b2[1]]); }
-    cmds.push(['L', b[0], b[1]]);
-    const corner = { top: [x + w, y, x + w, y + r], right: [x + w, y + h, x + w - r, y + h],
-                     bottom: [x, y + h, x, y + h - r], left: [x, y, x + r, y] }[s];
-    cmds.push(['Q', corner[0], corner[1], corner[2], corner[3]]);
+  const seq=['top','right','bottom','left'];
+  const cmds=[['M',x+r,y]];
+  for(const s of seq){
+    const [a,b]=edges[s];
+    if(s===side){
+      cmds.push(['L',b1[0],b1[1]]);
+      if((tail.style||'soft_curved')==='triangle'){
+        cmds.push(['L',tip[0],tip[1]],['L',b2[0],b2[1]]);
+      }else{
+        const reach=Math.max(10,Math.hypot(tip[0]-px,tip[1]-py));
+        const cbase=Math.min(half*.95,reach*.22)*(0.35+curve*.65);
+        const v1x=tip[0]-b1[0], v1y=tip[1]-b1[1], l1=Math.hypot(v1x,v1y)||1;
+        const v2x=b2[0]-tip[0], v2y=b2[1]-tip[1], l2=Math.hypot(v2x,v2y)||1;
+        const c1=[b1[0]+ux*cbase,b1[1]+uy*cbase];
+        const c2=[tip[0]-v1x/l1*reach*(.14+.18*curve),tip[1]-v1y/l1*reach*(.14+.18*curve)];
+        const c3=[tip[0]+v2x/l2*reach*(.14+.18*curve),tip[1]+v2y/l2*reach*(.14+.18*curve)];
+        const c4=[b2[0]-ux*cbase,b2[1]-uy*cbase];
+        cmds.push(['C',c1[0],c1[1],c2[0],c2[1],tip[0],tip[1]]);
+        cmds.push(['C',c3[0],c3[1],c4[0],c4[1],b2[0],b2[1]]);
+      }
+    }
+    cmds.push(['L',b[0],b[1]]);
+    const corner={top:[x+w,y,x+w,y+r],right:[x+w,y+h,x+w-r,y+h],
+      bottom:[x,y+h,x,y+h-r],left:[x,y,x+r,y]}[s];
+    cmds.push(['Q',corner[0],corner[1],corner[2],corner[3]]);
   }
   cmds.push(['Z']);
   return cmds;
@@ -153,7 +169,7 @@ function paintObject(ctx, o) {
     ctx.restore();
   } else if (o.type === 'bubble' || o.type === 'thought_box' || o.type === 'shape') {
     let cmds;
-    if (o.type === 'bubble') cmds = pBubble(r.x, r.y, r.w, r.h, o.radius ?? Math.min(46, r.h / 2), o.tail_to || null);
+    if (o.type === 'bubble') cmds = pBubble(r.x, r.y, r.w, r.h, o.radius ?? Math.min(46, r.h / 2), bubbleTailData(o));
     else if (o.shape === 'ellipse') cmds = pEllipse(r.x, r.y, r.w, r.h);
     else cmds = pRoundRect(r.x, r.y, r.w, r.h, o.radius ?? (o.type === 'thought_box' ? 18 : 0));
     execPath(ctx, cmds);
@@ -208,7 +224,7 @@ function pageToSVG(page) {
       else parts.push(`<rect clip-path="url(#${id})" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="#efe5d6"/>`);
     } else if (o.type === 'bubble' || o.type === 'thought_box' || o.type === 'shape') {
       let cmds;
-      if (o.type === 'bubble') cmds = pBubble(r.x, r.y, r.w, r.h, o.radius ?? Math.min(46, r.h / 2), o.tail_to || null);
+      if (o.type === 'bubble') cmds = pBubble(r.x, r.y, r.w, r.h, o.radius ?? Math.min(46, r.h / 2), bubbleTailData(o));
       else if (o.shape === 'ellipse') cmds = pEllipse(r.x, r.y, r.w, r.h);
       else cmds = pRoundRect(r.x, r.y, r.w, r.h, o.radius ?? (o.type === 'thought_box' ? 18 : 0));
       parts.push(`<path d="${svgD(cmds)}" fill="${o.fill || 'none'}" stroke="${o.stroke || 'none'}" stroke-width="${o.stroke_width || 0}" stroke-linejoin="round"${rot}/>`);
