@@ -151,7 +151,7 @@ function renderProps() {
   host.innerHTML = `<div class="grid2"><div class="field"><label>X</label><input id="pX" type="number" value="${round2(o.x)}" ${multi?'disabled':''}></div><div class="field"><label>Y</label><input id="pY" type="number" value="${round2(o.y)}" ${multi?'disabled':''}></div><div class="field"><label>W</label><input id="pW" type="number" value="${round2(o.width)}" ${multi?'disabled':''}></div><div class="field"><label>H</label><input id="pH" type="number" value="${round2(o.height)}" ${multi?'disabled':''}></div><div class="field"><label>회전</label><input id="pR" type="number" value="${round2(o.rotation||0)}" ${multi?'disabled':''}></div><div class="field"><label>Z ${band[0]}–${band[1]}</label><input id="pZ" type="number" value="${o.z}" ${multi?'disabled':''}></div></div><div class="hint" style="margin-top:9px">${esc(o.id)} · ${esc(o.group_id||'—')}</div>`;
   if (multi) return;
   const bind=(id,fn)=>$('#'+id).addEventListener('change',e=>{pushHistory();const v=+e.target.value;if(Number.isFinite(v))fn(v);fullRefresh();});
-  bind('pX',v=>o.x=v);bind('pY',v=>o.y=v);bind('pW',v=>o.width=Math.max(MINSZ,v));bind('pH',v=>o.height=Math.max(MINSZ,v));bind('pR',v=>o.rotation=v);bind('pZ',v=>o.z=Math.round(clamp(v,band[0],band[1]));
+  bind('pX',v=>o.x=v);bind('pY',v=>o.y=v);bind('pW',v=>o.width=Math.max(MINSZ,v));bind('pH',v=>o.height=Math.max(MINSZ,v));bind('pR',v=>o.rotation=v);bind('pZ',v=>o.z=Math.round(clamp(v,band[0],band[1])));
 }
 function syncProps(){const l=selObjs();if(l.length!==1)return;const o=l[0];for(const [id,v] of [['pX',o.x],['pY',o.y],['pW',o.width],['pH',o.height],['pR',o.rotation||0],['pZ',o.z]]){const e=$('#'+id);if(e&&document.activeElement!==e)e.value=round2(v);}}
 
