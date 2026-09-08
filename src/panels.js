@@ -175,7 +175,12 @@ function collectIssues() {
       }
       const band=bandFor(p,o);if(o.z<band[0]||o.z>band[1])push('bad',`z ${o.z}가 밴드 ${band[0]}–${band[1]} 밖`,o.id);
       const r=rectOf(o);if(r.x<-4||r.y<-4||r.x+r.w>W+4||r.y+r.h>H+4)push('warn','캔버스 밖으로 나감',o.id);
-      if(o.type==='text'||o.type==='sfx'){const L=layoutText(o);if(L.overflow)push('bad','글자가 박스를 넘침',o.id);}
+      if(o.type==='text'||o.type==='sfx'){
+        const L=layoutText(o);
+        if(L.overflow)push('bad','글자가 박스를 넘침',o.id);
+        const fr=fontCssFor(o.font||{});
+        if((o.font||{}).preferred_family && !fr.available)push('warn',`선호 폰트 미사용: ${fr.preferred} → ${fr.resolved}`,o.id);
+      }
     }
   });
   return out;
