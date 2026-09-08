@@ -22,7 +22,8 @@ function pEllipse(x, y, w, h) {
     ['C', x, cy - ry * k, cx - rx * k, y, cx, y], ['Z']];
 }
 /* rounded rect whose outline absorbs the speech tail, so fill and stroke stay one shape */
-function pBubble(x, y, w, h, r, tail) {
+function pBubble(x, y, w, h, r, tail, bodyStyle) {
+  if (bodyStyle === 'soft_oval') r = Math.max(r || 0, Math.min(h * .48, w * .22));
   if (!tail || tail.enabled === false) return pRoundRect(x, y, w, h, r);
   r = Math.max(0, Math.min(r, w / 2, h / 2));
 
@@ -169,7 +170,7 @@ function paintObject(ctx, o) {
     ctx.restore();
   } else if (o.type === 'bubble' || o.type === 'thought_box' || o.type === 'shape') {
     let cmds;
-    if (o.type === 'bubble') cmds = pBubble(r.x, r.y, r.w, r.h, o.radius ?? Math.min(46, r.h / 2), bubbleTailData(o));
+    if (o.type === 'bubble') cmds = pBubble(r.x, r.y, r.w, r.h, o.radius ?? Math.min(46, r.h / 2), bubbleTailData(o), o.body_style);
     else if (o.shape === 'ellipse') cmds = pEllipse(r.x, r.y, r.w, r.h);
     else cmds = pRoundRect(r.x, r.y, r.w, r.h, o.radius ?? (o.type === 'thought_box' ? 18 : 0));
     execPath(ctx, cmds);
@@ -224,7 +225,7 @@ function pageToSVG(page) {
       else parts.push(`<rect clip-path="url(#${id})" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="#efe5d6"/>`);
     } else if (o.type === 'bubble' || o.type === 'thought_box' || o.type === 'shape') {
       let cmds;
-      if (o.type === 'bubble') cmds = pBubble(r.x, r.y, r.w, r.h, o.radius ?? Math.min(46, r.h / 2), bubbleTailData(o));
+      if (o.type === 'bubble') cmds = pBubble(r.x, r.y, r.w, r.h, o.radius ?? Math.min(46, r.h / 2), bubbleTailData(o), o.body_style);
       else if (o.shape === 'ellipse') cmds = pEllipse(r.x, r.y, r.w, r.h);
       else cmds = pRoundRect(r.x, r.y, r.w, r.h, o.radius ?? (o.type === 'thought_box' ? 18 : 0));
       parts.push(`<path d="${svgD(cmds)}" fill="${o.fill || 'none'}" stroke="${o.stroke || 'none'}" stroke-width="${o.stroke_width || 0}" stroke-linejoin="round"${rot}/>`);
