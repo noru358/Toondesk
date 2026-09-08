@@ -124,7 +124,7 @@ function renderCtx(force) {
   } else if (list.length === 1 && (list[0].type === 'bubble' || list[0].type === 'thought_box' || list[0].type === 'shape')) {
     const o = list[0], bt=o.type==='bubble'?bubbleTailData(o):null;
     const tailCtl=o.type==='bubble'
-      ? `<button class="btn ${bt?'on':''}" data-act="tail">꼬리</button>${bt?`${ctlNum('bTw','꼬리폭',bt.base_width||56,1)}${ctlNum('bTc','곡률',bt.curve??.58,.05)}<div class="ctl"><label>방향</label><select class="f" id="bTs">${['top','right','bottom','left'].map(v=>`<option value="${v}" ${bt.attach_side===v?'selected':''}>${v}</option>`).join('')}</select></div>`:''}`
+      ? `<button class="btn ${bt?'on':''}" data-act="tail">꼬리</button>${bt?`<button class="btn" data-act="bubbleFlipX">좌우 반전</button>${ctlNum('bTw','꼬리폭',bt.base_width||42,1)}${ctlNum('bTc','곡률',bt.curve??.72,.05)}<div class="ctl"><label>방향</label><select class="f" id="bTs">${['top','right','bottom','left'].map(v=>`<option value="${v}" ${bt.attach_side===v?'selected':''}>${v}</option>`).join('')}</select></div>`:''}`
       : '';
     bar.innerHTML = `<span class="lbl">${esc(o.role || o.type)}</span><div class="ctl"><label>채움</label><input class="f" type="color" id="bFill" value="${o.fill && o.fill !== 'none' ? o.fill : '#ffffff'}"></div><div class="ctl"><label>선</label><input class="f" type="color" id="bStroke" value="${o.stroke && o.stroke !== 'none' ? o.stroke : '#221f1d'}"></div>${ctlNum('bSw','선굵기',o.stroke_width||0)}${ctlNum('bR','라운드',o.radius??18)}${tailCtl}<button class="btn" data-act="smartPlace">빈곳 배치</button>${common}`;
   } else {
