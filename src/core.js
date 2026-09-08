@@ -479,7 +479,7 @@ function makeParts(p, kind) {
       id: uid('shp'), type: 'shape', shape: 'rounded_rect', x: 420, y: 620, width: 240, height: 120, radius: 20,
       fill: '#e0562b', stroke: 'none', stroke_width: 0, z: freeZ(p, ZBAND.overlay), visible: true, rotation: 0, locked: false, group_id: gid
     };
-    mk.add = [o]; mk.sel = [o.id];
+    markManual(o,'object_presence'); mk.add = [o]; mk.sel = [o.id];
   }
   return mk;
 }
