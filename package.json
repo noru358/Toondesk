@@ -1,0 +1,58 @@
+{
+  "name": "toondesk",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Profile-driven direct-manipulation editor for editable comic/carousel scene JSON.",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "desktop": "electron .",
+    "dist": "electron-builder --publish never",
+    "dist:win": "electron-builder --win nsis portable --publish never"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "io.toondesk.editor",
+    "productName": "ToonDesk",
+    "asar": true,
+    "files": [
+      "index.html",
+      "styles.css",
+      "src/**/*",
+      "profiles/**/*",
+      "desktop/**/*"
+    ],
+    "fileAssociations": [
+      {
+        "ext": "toondesk",
+        "name": "ToonDesk Project",
+        "description": "ToonDesk editable comic project",
+        "role": "Editor"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.graphics-design"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Graphics"
+    }
+  }
+}
