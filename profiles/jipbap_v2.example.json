@@ -7,83 +7,6 @@
     "height": 1350,
     "ratio": "4:5"
   },
-  "editor_policy": {
-    "profile": "project_default_not_capability_boundary",
-    "allow_custom_override": true,
-    "deviation_class": "CUSTOM_OVERRIDE",
-    "deviation_is_error": false,
-    "default_page_structure": {
-      "cover": 1,
-      "body": 6
-    },
-    "page_add_delete_duplicate_supported": true,
-    "page_type_change_supported": true,
-    "frame_transform_supported_after_unlock": true
-  },
-  "cover": {
-    "layout_mode": "FULL_ART_OVERLAY",
-    "title_region": {
-      "x": 48,
-      "y": 36,
-      "width": 984,
-      "height": 330,
-      "kind": "soft_hint"
-    },
-    "hero_frame": {
-      "x": 0,
-      "y": 0,
-      "width": 1080,
-      "height": 1350,
-      "fit": "frame_crop",
-      "default_locked": true,
-      "allow_stretch": false
-    },
-    "default_objects": [
-      "full_canvas_artwork",
-      "menu_tag",
-      "title"
-    ],
-    "subtitle_default": false
-  },
-  "body": {
-    "layout_mode": "FULL_ART_OVERLAY",
-    "artwork_frame": {
-      "x": 0,
-      "y": 0,
-      "width": 1080,
-      "height": 1350,
-      "fit": "frame_crop",
-      "default_locked": true,
-      "allow_stretch": false
-    },
-    "safe_inset": {
-      "left": 48,
-      "top": 48,
-      "right": 48,
-      "bottom": 48,
-      "kind": "soft_hint"
-    },
-    "semantic_placement": {
-      "speech": "freeform_overlay",
-      "sfx": "freeform_overlay",
-      "inner_thought": "freeform_overlay",
-      "narration": "freeform_overlay"
-    },
-    "placement_policy": {
-      "strategy": "focal_aware_freeform",
-      "optional_metadata": [
-        "placement_guides",
-        "avoid_regions"
-      ],
-      "avoid_roles": [
-        "face_primary",
-        "food_primary",
-        "hand_action"
-      ],
-      "structural_band_required": false,
-      "lettering_move_is_custom_override": false
-    }
-  },
   "profile_semantics": {
     "kind": "project_default_not_editor_capability_boundary",
     "automatic_production": true,
@@ -105,84 +28,290 @@
     },
     "deviations_require_explicit_user_editor_action": true
   },
+  "body": {
+    "artwork_frame": {
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "fit": "frame_crop",
+      "default_locked": true,
+      "allow_stretch": false
+    },
+    "semantic_placement": {
+      "speech": "freeform_overlay",
+      "sfx": "freeform_overlay",
+      "inner_thought": "freeform_overlay",
+      "narration": "freeform_overlay"
+    },
+    "page_markers": false,
+    "group_contract": {
+      "top_level_pattern": [
+        "{page}.background",
+        "{page}.artwork",
+        "{page}.lettering",
+        "{page}.overlay"
+      ],
+      "lettering_instance_patterns": [
+        "{page}.speech.NN",
+        "{page}.thought.NN",
+        "{page}.narration.NN",
+        "{page}.sfx.NN"
+      ],
+      "fixed_instance_count": false
+    },
+    "layout_mode": "FULL_ART_OVERLAY",
+    "safe_inset": {
+      "left": 48,
+      "top": 48,
+      "right": 48,
+      "bottom": 48,
+      "kind": "soft_hint"
+    },
+    "placement_policy": {
+      "strategy": "focal_aware_freeform",
+      "optional_metadata": [
+        "placement_guides",
+        "avoid_regions"
+      ],
+      "avoid_roles": [
+        "face_primary",
+        "food_primary",
+        "hand_action"
+      ],
+      "structural_band_required": false,
+      "lettering_move_is_custom_override": false
+    }
+  },
+  "cover": {
+    "title_region": {
+      "x": 48,
+      "y": 36,
+      "width": 984,
+      "height": 330,
+      "kind": "soft_hint"
+    },
+    "hero_frame": {
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "fit": "frame_crop",
+      "default_locked": true,
+      "allow_stretch": false
+    },
+    "default_objects": [
+      "full_canvas_artwork",
+      "menu_tag",
+      "title"
+    ],
+    "subtitle_default": false,
+    "group_contract": {
+      "top_level": [
+        "cover.background",
+        "cover.artwork",
+        "cover.lettering",
+        "cover.overlay"
+      ],
+      "lettering_children": [
+        "cover.menu_tag",
+        "cover.title"
+      ],
+      "subtitle_group": "optional_hidden_by_default"
+    },
+    "layout_mode": "FULL_ART_OVERLAY",
+    "artwork_source_policy": {
+      "mode": "sticky_selected_source",
+      "record_provenance": true,
+      "silent_body_substitution": false,
+      "replacement_requires_explicit_override": true,
+      "focal_aware_lettering": true
+    },
+    "placement_policy": {
+      "strategy": "focal_aware_freeform",
+      "optional_metadata": [
+        "placement_guides",
+        "avoid_regions"
+      ],
+      "avoid_roles": [
+        "face_primary",
+        "food_primary",
+        "hand_action"
+      ],
+      "reflow_before_obstruction": true
+    }
+  },
+  "editor_defaults": {
+    "background": {
+      "locked": true,
+      "visible": true
+    },
+    "artwork": {
+      "locked": true,
+      "visible": true,
+      "crop_editable": true,
+      "explicit_unlock_allows_frame_transform": true
+    },
+    "lettering": {
+      "locked": false,
+      "visible": true
+    },
+    "overlay": {
+      "locked": false,
+      "visible": true,
+      "default_empty": true
+    },
+    "frame_transform_after_explicit_unlock": {
+      "move": true,
+      "resize": true,
+      "rotation": true
+    },
+    "image_replacement_capability": true,
+    "guides": {
+      "soft_guides_visible_default": false,
+      "toggleable": true,
+      "snap_to_placement_guides": true,
+      "snap_to_avoid_region_edges": true,
+      "export_visible": false
+    }
+  },
+  "z_bands": {
+    "background": [
+      0,
+      0
+    ],
+    "artwork": [
+      1,
+      9
+    ],
+    "lettering": [
+      10,
+      99
+    ],
+    "overlay": [
+      100,
+      199
+    ]
+  },
+  "lettering": {
+    "speech": {
+      "container": "bubble",
+      "fill": "#FFFFFF",
+      "stroke": "#2A2A2A",
+      "stroke_width": 4,
+      "tail": {
+        "enabled": true,
+        "style": "soft_curved",
+        "default_attach_side": "bottom",
+        "default_attach": 0.55,
+        "default_base_width": 56,
+        "default_curve": 0.58,
+        "editable_handles": [
+          "tip",
+          "attach"
+        ],
+        "editable_numeric": [
+          "base_width",
+          "curve"
+        ]
+      }
+    },
+    "inner_thought": {
+      "container": "thought_box_optional",
+      "fill": "#FFF7E8",
+      "stroke": "#B7A995",
+      "stroke_width": 2,
+      "tail": false
+    },
+    "narration": {
+      "container": "optional",
+      "tail": false,
+      "editable": true
+    },
+    "sfx": {
+      "container": "none",
+      "editable": true,
+      "rotation_allowed": true
+    }
+  },
   "typography_roles": {
     "cover_menu_tag": {
       "family_intent": "friendly_round_display",
+      "nominal_size": 30,
+      "min_size": 26,
+      "max_size": 34,
+      "weight": 700,
       "preferred_family": "Jua",
       "fallback_families": [
         "Do Hyeon",
         "Noto Sans KR",
         "sans-serif"
-      ],
-      "nominal_size": 30,
-      "min_size": 26,
-      "max_size": 34,
-      "weight": 700
+      ]
     },
     "cover_title": {
       "family_intent": "friendly_handdrawn_display",
+      "nominal_size": 92,
+      "min_size": 72,
+      "max_size": 112,
+      "weight": 700,
       "preferred_family": "Jua",
       "fallback_families": [
         "Do Hyeon",
         "Black Han Sans",
         "Noto Sans KR",
         "sans-serif"
-      ],
-      "nominal_size": 92,
-      "min_size": 72,
-      "max_size": 112,
-      "weight": 700
+      ]
     },
     "body_speech": {
       "family_intent": "friendly_round_body",
+      "nominal_size": 42,
+      "min_size": 36,
+      "max_size": 46,
+      "weight": 700,
       "preferred_family": "Jua",
       "fallback_families": [
         "Gowun Dodum",
         "Noto Sans KR",
         "sans-serif"
-      ],
-      "nominal_size": 42,
-      "min_size": 36,
-      "max_size": 46,
-      "weight": 700
+      ]
     },
     "body_thought": {
       "family_intent": "friendly_round_body",
+      "nominal_size": 38,
+      "min_size": 34,
+      "max_size": 42,
+      "weight": 400,
       "preferred_family": "Gowun Dodum",
       "fallback_families": [
         "Jua",
         "Noto Sans KR",
         "sans-serif"
-      ],
-      "nominal_size": 38,
-      "min_size": 34,
-      "max_size": 42,
-      "weight": 400
+      ]
     },
     "body_narration": {
       "family_intent": "friendly_round_body",
+      "nominal_size": 36,
+      "min_size": 32,
+      "max_size": 40,
+      "weight": 500,
       "preferred_family": "Gowun Dodum",
       "fallback_families": [
         "Noto Sans KR",
         "sans-serif"
-      ],
-      "nominal_size": 36,
-      "min_size": 32,
-      "max_size": 40,
-      "weight": 500
+      ]
     },
     "body_sfx": {
       "family_intent": "handdrawn_display",
+      "nominal_size": 64,
+      "min_size": 44,
+      "max_size": 84,
+      "weight": 700,
       "preferred_family": "Gaegu",
       "fallback_families": [
         "Jua",
         "Do Hyeon",
         "sans-serif"
-      ],
-      "nominal_size": 64,
-      "min_size": 44,
-      "max_size": 84,
-      "weight": 700
+      ]
     }
   },
   "font_resolution": {
@@ -190,5 +319,6 @@
     "surface_missing_preferred_font_warning": true,
     "preview_export_must_share_resolved_family": true,
     "font_binary_is_authority": false
-  }
+  },
+  "_note": "NON_AUTHORITATIVE development mirror; canonical profile is noru358/jipbap/templates/JIPBAP_PRESENTATION_SHELL_V2.json"
 }
