@@ -99,3 +99,26 @@ Generated lettering in an image preview is not automatically a real font family.
 - runtime-resolved family
 
 The built-in webfont set includes Jua, Do Hyeon, Gowun Dodum, Gaegu, Nanum Pen Script, Black Han Sans, Nanum Gothic, Hi Melody and Noto Sans KR. If the preferred family cannot be loaded, ToonDesk reports the substitution in the inspector and export manifest. Preview and export use the same resolver.
+
+
+## Editing ergonomics
+
+ToonDesk 0.3 adds the minimum direct-manipulation set needed for JIPBAP-style production:
+- full-art COVER/BODY with optional soft guide visualization (`G` or the Guide button)
+- snapping to canvas/profile guides, page placement guides and avoid-region edges
+- focal/avoid-region QC warnings for lettering that covers primary face/food/hand regions
+- speech-tail direct manipulation: tail tip handle, attachment handle, base width, curvature and side controls
+- horizontal/vertical alignment and equal-spacing tools for multi-selection
+- deterministic "빈곳 배치" helper that scores available positions against avoid regions
+- font picker updates the real preferred family, not merely semantic intent
+- requested fonts are loaded before preview/export; fallback resolution is recorded in the export manifest
+- COVER artwork provenance can be recorded and is checked so presentation-only edits do not silently substitute another BODY image
+
+## Build / release policy
+
+You do not need to manually rebuild every time during development.
+- every relevant push to `main` automatically produces a Windows development artifact through GitHub Actions
+- normal scene/profile-only changes that the installed editor already understands do not require a new binary
+- editor/runtime code changes require a new binary, but the build is automatic
+- stable desktop releases are tag-driven: pushing `vX.Y.Z` builds the Windows executables and attaches them to a GitHub Release
+- auto-update is intentionally deferred until signing/release cadence is stable; use the latest dev artifact or tagged stable release in the meantime
