@@ -1,0 +1,64 @@
+{
+  "schema": "JIPBAP_PRESENTATION_SHELL_V2",
+  "template_id": "JIPBAP_PRESENTATION_SHELL_V2",
+  "profile_id": "JIPBAP_DEFAULT_V2",
+  "canvas": {
+    "width": 1080,
+    "height": 1350,
+    "ratio": "4:5"
+  },
+  "editor_policy": {
+    "profile": "project_default_not_capability_boundary",
+    "allow_custom_override": true,
+    "deviation_class": "CUSTOM_OVERRIDE",
+    "deviation_is_error": false,
+    "default_page_structure": {
+      "cover": 1,
+      "body": 6
+    },
+    "page_add_delete_duplicate_supported": true,
+    "page_type_change_supported": true,
+    "frame_transform_supported_after_unlock": true
+  },
+  "cover": {
+    "title_region": {
+      "x": 60,
+      "y": 40,
+      "width": 960,
+      "height": 240
+    },
+    "hero_frame": {
+      "x": 40,
+      "y": 310,
+      "width": 1000,
+      "height": 1000,
+      "fit": "frame_crop",
+      "default_locked": true,
+      "allow_stretch": false
+    },
+    "default_grammar": ["menu_tag", "title", "hero_artwork"]
+  },
+  "body": {
+    "artwork_frame": {
+      "x": 40,
+      "y": 40,
+      "width": 1000,
+      "height": 1000,
+      "fit": "frame_crop",
+      "default_locked": true,
+      "allow_stretch": false
+    },
+    "meta_region": {
+      "x": 60,
+      "y": 1080,
+      "width": 960,
+      "height": 230
+    },
+    "semantic_placement": {
+      "speech": "artwork",
+      "sfx": "artwork",
+      "inner_thought": "meta_region",
+      "narration": "meta_region"
+    }
+  }
+}
