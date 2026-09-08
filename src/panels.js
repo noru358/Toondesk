@@ -111,14 +111,19 @@ function renderCtx(force) {
     const o = list[0], has = !!doc.images.get(baseName(o.source));
     bar.innerHTML = `<span class="lbl">아트워크</span><span class="mono hint">${esc(baseName(o.source) || '미지정')}</span><span class="sep"></span><button class="btn" data-act="crop" ${has ? '' : 'disabled'}>크롭</button><button class="btn" data-act="replace">교체</button><button class="btn" data-act="cropReset">크롭 초기화</button><span class="sep"></span><button class="btn ${o.locked ? 'on' : ''}" data-act="lock">${o.locked ? '기본 잠금' : 'CUSTOM OVERRIDE'}</button>`;
   } else if (list.some(x => x.type === 'text' || x.type === 'sfx')) {
-    const o = list.find(x => x.type === 'text' || x.type === 'sfx'), f = o.font || {}, R = roleOf(o);
-    const opts = FONTS.map(x => `<option value="${x.id}" ${fontCssFor(f.family_intent).id === x.id ? 'selected' : ''}>${x.label}</option>`).join('');
-    bar.innerHTML = `<span class="lbl">${esc(o.role || o.type)}</span><select class="f" id="tFam">${opts}</select>${ctlNum('tSize','크기',f.size||R.nominal)}<div class="ctl"><label>굵기</label><select class="f" id="tWeight">${[400,500,700,800].map(w=>`<option ${(f.weight||400)==w?'selected':''}>${w}</option>`).join('')}</select></div><input class="f" type="color" id="tFill" value="${o.fill || '#221f1d'}"><span class="sep"></span><div class="seg">${['left','center','right'].map(a=>`<button class="btn ${(o.align||'center')===a?'on':''}" data-act="al-${a}">${a}</button>`).join('')}</div>${ctlNum('tLh','행간',f.line_height||1.15,.02)}<button class="btn" data-act="fit">자동맞춤</button>${common}`;
+    const o = list.find(x => x.type === 'text' || x.type === 'sfx'), f = o.font || {}, R = roleOf(o), fr=fontCssFor(f);
+    const selectedFamily=f.preferred_family||fr.preferred||fr.id;
+    const opts = FONTS.map(x => `<option value="${x.id}" ${selectedFamily === x.id ? 'selected' : ''}>${x.label}</option>`).join('');
+    const resolved = fr.available ? `<span class="hint">적용: ${esc(fr.resolved)}</span>` : `<span class="hint" style="color:var(--warn)">대체: ${esc(fr.preferred)} → ${esc(fr.resolved)}</span>`;
+    bar.innerHTML = `<span class="lbl">${esc(o.role || o.type)}</span><select class="f" id="tFam">${opts}</select>${resolved}${ctlNum('tSize','크기',f.size||R.nominal)}<div class="ctl"><label>굵기</label><select class="f" id="tWeight">${[400,500,700,800].map(w=>`<option ${(f.weight||400)==w?'selected':''}>${w}</option>`).join('')}</select></div><input class="f" type="color" id="tFill" value="${o.fill || '#221f1d'}"><span class="sep"></span><div class="seg">${['left','center','right'].map(a=>`<button class="btn ${(o.align||'center')===a?'on':''}" data-act="al-${a}">${a}</button>`).join('')}</div>${ctlNum('tLh','행간',f.line_height||1.15,.02)}<button class="btn" data-act="fit">자동맞춤</button><button class="btn" data-act="smartPlace">빈곳 배치</button>${common}`;
   } else if (list.length === 1 && (list[0].type === 'bubble' || list[0].type === 'thought_box' || list[0].type === 'shape')) {
-    const o = list[0];
-    bar.innerHTML = `<span class="lbl">${esc(o.role || o.type)}</span><div class="ctl"><label>채움</label><input class="f" type="color" id="bFill" value="${o.fill && o.fill !== 'none' ? o.fill : '#ffffff'}"></div><div class="ctl"><label>선</label><input class="f" type="color" id="bStroke" value="${o.stroke && o.stroke !== 'none' ? o.stroke : '#221f1d'}"></div>${ctlNum('bSw','선굵기',o.stroke_width||0)}${ctlNum('bR','라운드',o.radius??18)}${o.type==='bubble'?'<button class="btn" data-act="tail">꼬리</button>':''}${common}`;
+    const o = list[0], bt=o.type==='bubble'?bubbleTailData(o):null;
+    const tailCtl=o.type==='bubble'
+      ? `<button class="btn ${bt?'on':''}" data-act="tail">꼬리</button>${bt?`${ctlNum('bTw','꼬리폭',bt.base_width||56,1)}${ctlNum('bTc','곡률',bt.curve??.58,.05)}<div class="ctl"><label>방향</label><select class="f" id="bTs">${['top','right','bottom','left'].map(v=>`<option value="${v}" ${bt.attach_side===v?'selected':''}>${v}</option>`).join('')}</select></div>`:''}`
+      : '';
+    bar.innerHTML = `<span class="lbl">${esc(o.role || o.type)}</span><div class="ctl"><label>채움</label><input class="f" type="color" id="bFill" value="${o.fill && o.fill !== 'none' ? o.fill : '#ffffff'}"></div><div class="ctl"><label>선</label><input class="f" type="color" id="bStroke" value="${o.stroke && o.stroke !== 'none' ? o.stroke : '#221f1d'}"></div>${ctlNum('bSw','선굵기',o.stroke_width||0)}${ctlNum('bR','라운드',o.radius??18)}${tailCtl}<button class="btn" data-act="smartPlace">빈곳 배치</button>${common}`;
   } else {
-    bar.innerHTML = `<span class="lbl">${list.length}개 선택</span><button class="btn" data-act="alignL">왼쪽</button><button class="btn" data-act="alignC">가운데</button><button class="btn" data-act="alignR">오른쪽</button>${common}`;
+    bar.innerHTML = `<span class="lbl">${list.length}개 선택</span><div class="seg"><button class="btn" data-act="alignL">좌</button><button class="btn" data-act="alignC">가로중앙</button><button class="btn" data-act="alignR">우</button></div><div class="seg"><button class="btn" data-act="alignT">상</button><button class="btn" data-act="alignM">세로중앙</button><button class="btn" data-act="alignB">하</button></div>${list.length>=3?'<button class="btn" data-act="distH">가로간격</button><button class="btn" data-act="distV">세로간격</button>':''}<button class="btn" data-act="smartPlace">빈곳 배치</button>${common}`;
   }
   wireCtx();
 }
@@ -131,7 +136,7 @@ function wireCtx() {
   $$('#ctxbar [data-act]').forEach(b => b.addEventListener('click', () => act(b.dataset.act)));
   on('cBg','input',e=>{p.page.background=e.target.value;draw();renderPages();});
   on('cScale','input',e=>{const v=+e.target.value;$('#cScaleV').textContent=v.toFixed(2)+'×';const t=byId(p,sel.crop);t.crop=t.crop||{};t.crop.scale=v;draw();});
-  on('tFam','change',e=>{pushHistory();texts.forEach(t=>{t.font=t.font||{};t.font.family_intent=e.target.value;});fullRefresh();});
+  on('tFam','change',async e=>{pushHistory();const fam=e.target.value;texts.forEach(t=>{t.font=t.font||{};t.font.preferred_family=fam;delete t.font.resolved_family;});await Promise.all(texts.map(t=>ensureFontLoaded(fam,(t.font||{}).weight||400)));fullRefresh();});
   on('tSize','input',e=>{texts.forEach(t=>t.font.size=Math.max(6,+e.target.value||6));draw();});
   on('tWeight','change',e=>{pushHistory();texts.forEach(t=>t.font.weight=+e.target.value);fullRefresh();});
   on('tFill','input',e=>{texts.forEach(t=>t.fill=e.target.value);draw();});
@@ -141,6 +146,9 @@ function wireCtx() {
     on('bStroke','input',e=>{o.stroke=e.target.value;draw();});
     on('bSw','input',e=>{o.stroke_width=Math.max(0,+e.target.value||0);draw();});
     on('bR','input',e=>{o.radius=Math.max(0,+e.target.value||0);draw();});
+    on('bTw','input',e=>{const t=ensureBubbleTail(o);t.base_width=Math.max(8,+e.target.value||8);draw();});
+    on('bTc','input',e=>{const t=ensureBubbleTail(o);t.curve=clamp(+e.target.value||0,0,1);draw();});
+    on('bTs','change',e=>{const t=ensureBubbleTail(o);t.attach_side=e.target.value;draw();});
   }
 }
 
@@ -148,10 +156,12 @@ function renderProps() {
   const host = $('#propBody'), list = selObjs();
   if (!list.length) { host.innerHTML = '<div class="empty">선택된 개체 없음</div>'; return; }
   const o = list[0], multi = list.length > 1, p = curPage(), band = bandFor(p,o);
-  host.innerHTML = `<div class="grid2"><div class="field"><label>X</label><input id="pX" type="number" value="${round2(o.x)}" ${multi?'disabled':''}></div><div class="field"><label>Y</label><input id="pY" type="number" value="${round2(o.y)}" ${multi?'disabled':''}></div><div class="field"><label>W</label><input id="pW" type="number" value="${round2(o.width)}" ${multi?'disabled':''}></div><div class="field"><label>H</label><input id="pH" type="number" value="${round2(o.height)}" ${multi?'disabled':''}></div><div class="field"><label>회전</label><input id="pR" type="number" value="${round2(o.rotation||0)}" ${multi?'disabled':''}></div><div class="field"><label>Z ${band[0]}–${band[1]}</label><input id="pZ" type="number" value="${o.z}" ${multi?'disabled':''}></div></div><div class="hint" style="margin-top:9px">${esc(o.id)} · ${esc(o.group_id||'—')}</div>`;
+  const bt=!multi&&o.type==='bubble'?bubbleTailData(o):null;
+  host.innerHTML = `<div class="grid2"><div class="field"><label>X</label><input id="pX" type="number" value="${round2(o.x)}" ${multi?'disabled':''}></div><div class="field"><label>Y</label><input id="pY" type="number" value="${round2(o.y)}" ${multi?'disabled':''}></div><div class="field"><label>W</label><input id="pW" type="number" value="${round2(o.width)}" ${multi?'disabled':''}></div><div class="field"><label>H</label><input id="pH" type="number" value="${round2(o.height)}" ${multi?'disabled':''}></div><div class="field"><label>회전</label><input id="pR" type="number" value="${round2(o.rotation||0)}" ${multi?'disabled':''}></div><div class="field"><label>Z ${band[0]}–${band[1]}</label><input id="pZ" type="number" value="${o.z}" ${multi?'disabled':''}></div></div>${bt?`<div class="grid2" style="margin-top:9px"><div class="field"><label>꼬리 Tip X</label><input id="pTX" type="number" value="${round2(bt.tip_x)}"></div><div class="field"><label>꼬리 Tip Y</label><input id="pTY" type="number" value="${round2(bt.tip_y)}"></div><div class="field"><label>붙는 위치 0–1</label><input id="pTA" type="number" min="0" max="1" step=".01" value="${round2(bt.attach)}"></div><div class="field"><label>꼬리 폭</label><input id="pTW" type="number" min="8" value="${round2(bt.base_width)}"></div></div>`:''}<div class="hint" style="margin-top:9px">${esc(o.id)} · ${esc(o.group_id||'—')}</div>`;
   if (multi) return;
   const bind=(id,fn)=>$('#'+id).addEventListener('change',e=>{pushHistory();const v=+e.target.value;if(Number.isFinite(v))fn(v);fullRefresh();});
   bind('pX',v=>o.x=v);bind('pY',v=>o.y=v);bind('pW',v=>o.width=Math.max(MINSZ,v));bind('pH',v=>o.height=Math.max(MINSZ,v));bind('pR',v=>o.rotation=v);bind('pZ',v=>o.z=Math.round(clamp(v,band[0],band[1])));
+  if(bt){bind('pTX',v=>ensureBubbleTail(o).tip_x=v);bind('pTY',v=>ensureBubbleTail(o).tip_y=v);bind('pTA',v=>ensureBubbleTail(o).attach=clamp(v,0,1));bind('pTW',v=>ensureBubbleTail(o).base_width=Math.max(8,v));}
 }
 function syncProps(){const l=selObjs();if(l.length!==1)return;const o=l[0];for(const [id,v] of [['pX',o.x],['pY',o.y],['pW',o.width],['pH',o.height],['pR',o.rotation||0],['pZ',o.z]]){const e=$('#'+id);if(e&&document.activeElement!==e)e.value=round2(v);}}
 
@@ -168,6 +178,10 @@ function collectIssues() {
   const out=[];
   doc.pages.forEach((p,pi)=>{
     const push=(lvl,msg,id)=>out.push({lvl,msg,page:pi,id,where:p.id+(id?' · '+id:'')});
+    if(p.page.page_type==='cover'&&p.page.cover_artwork_provenance?.source){
+      const art=p.objects.find(o=>o.type==='artwork');
+      if(art&&art.source!==p.page.cover_artwork_provenance.source)push('warn','COVER artwork provenance와 현재 source가 다름',art.id);
+    }
     for(const o of p.objects){
       if(o.type==='artwork'){
         if(!o.source)push('bad','아트워크 source가 비어 있음',o.id);
@@ -180,6 +194,16 @@ function collectIssues() {
         if(L.overflow)push('bad','글자가 박스를 넘침',o.id);
         const fr=fontCssFor(o.font||{});
         if((o.font||{}).preferred_family && !fr.available)push('warn',`선호 폰트 미사용: ${fr.preferred} → ${fr.resolved}`,o.id);
+      }
+      const gr=groupOf(p,o.group_id);
+      if((gr?.role==='lettering'||gr?.parent_id?.endsWith?.('.lettering')) && (p.page.avoid_regions||[]).length){
+        const rr=rectOf(o),oa=Math.max(1,rr.w*rr.h);
+        for(const a of p.page.avoid_regions){
+          const iw=Math.max(0,Math.min(rr.x+rr.w,a.x+a.width)-Math.max(rr.x,a.x));
+          const ih=Math.max(0,Math.min(rr.y+rr.h,a.y+a.height)-Math.max(rr.y,a.y));
+          const ratio=iw*ih/oa;
+          if(ratio>.35 && (a.priority??1)>=.8){push('warn',`focal 영역 과다 가림: ${a.role||'avoid'} ${Math.round(ratio*100)}%`,o.id);break;}
+        }
       }
     }
   });
