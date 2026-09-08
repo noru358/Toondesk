@@ -6,18 +6,8 @@ permissions:
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
     tags:
       - "v*"
-    paths:
-      - "package.json"
-      - "desktop/**"
-      - "src/**"
-      - "index.html"
-      - "styles.css"
-      - "profiles/**"
-      - ".github/workflows/desktop-build.yml"
 
 jobs:
   windows:
