@@ -15,6 +15,8 @@ function sortPages() {
 }
 function addLayout(name, data) {
   const id = pageIdFrom(name, data);
+  const known=new Set(['schema','template_id','page','objects','scene_model','groups']);
+  const layout_meta=Object.fromEntries(Object.entries(data).filter(([k])=>!known.has(k)));
   const page = {
     id,
     page: { width: W, height: H, background: '#ffffff', page_type: 'body', ...(data.page || {}) },
@@ -25,10 +27,11 @@ function addLayout(name, data) {
       if(n.type==='bubble'&&n.tail_to&&!n.tail)ensureBubbleTail(n);
       return n;
     }),
-    groups: data.groups || []
+    groups: data.groups || [],
+    layout_meta
   };
   const ex = doc.pages.findIndex(p => p.id === id);
-  if (ex >= 0) doc.pages[ex] = page; else doc.pages.push(page);
+  if (ex >= 0) doc.pages[ex] = SceneState.mergePage(doc.pages[ex], page); else doc.pages.push(page);
 }
 async function addImageFile(file) {
   const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
@@ -48,12 +51,12 @@ async function handleFiles(files) {
     if (typeof data.schema === 'string' && (data.schema.includes('PRESENTATION_SHELL') || data.profile_id || data.editor_policy?.profile)) {
       applyShellProfile(data); project = true; continue;
     }
-    if (data.schema === 'EDITABLE_COMPOSITION_PACKAGE_V1' && data.objects) { if (!layouts) { doc.pages = []; } addLayout(f.name, data); layouts++; continue; }
+    if (data.schema === 'EDITABLE_COMPOSITION_PACKAGE_V1' && data.objects) { if (!layouts) { const id=pageIdFrom(f.name,data); if (!doc.pages.some(p=>p.id===id)) doc.pages = []; } addLayout(f.name, data); layouts++; continue; }
     if (data.episode) { doc.manifest = data; doc.name = data.episode; $('#docName').value = data.episode; }
   }
   if (pendingReplace && imgs === 1) {
     const o = byId(curPage(), pendingReplace);
-    if (o) { pushHistory(); o.source = '../artwork/' + arr.find(f => /\.(png|jpe?g|webp)$/i.test(f.name)).name; }
+    if (o) { pushHistory(); o.source = '../artwork/' + arr.find(f => /\.(png|jpe?g|webp)$/i.test(f.name)).name; markManual(o,'artwork_source'); }
     pendingReplace = null;
   }
   if (layouts) { sortPages(); doc.cur = 0; sel.ids.clear(); }
@@ -170,7 +173,9 @@ addEventListener('drop', async e => {
 
 /* ---------- export ---------- */
 function layoutJSON(p) {
+  recordFontResolutionReceipts();
   return {
+    ...(p.layout_meta || {}),
     schema: 'EDITABLE_COMPOSITION_PACKAGE_V1',
     template_id: doc.template_id,
     page: p.page,
@@ -194,8 +199,9 @@ function customOverrideState() {
       if (!o.locked) reasons.push(`${p.id}:${o.id}:frame_unlocked`);
       if (!same(o.x, frame.x) || !same(o.y, frame.y) || !same(o.width, frame.width) || !same(o.height, frame.height) || !same(o.rotation || 0, 0))
         reasons.push(`${p.id}:${o.id}:frame_geometry`);
-      if (p.page.page_type === 'cover' && p.page.cover_artwork_provenance?.source && o.source !== p.page.cover_artwork_provenance.source)
-        reasons.push(`${p.id}:${o.id}:cover_artwork_source_override`);
+      const provenance=p.page.artwork_provenance || (p.page.page_type === 'cover' ? p.page.cover_artwork_provenance : null);
+      if (provenance?.source && o.source !== provenance.source)
+        reasons.push(`${p.id}:${o.id}:artwork_source_override`);
     }
   }
   return { active: reasons.length > 0, reasons: [...new Set(reasons)] };
@@ -225,9 +231,9 @@ function manifestJSON() {
       .filter(o => o.type === 'text' || o.type === 'sfx')
       .map(o => {
         const r = fontCssFor(o.font || {});
-        return { object_id: o.id, preferred: r.preferred, resolved: r.resolved, substituted: !r.available };
+        return { object_id: o.id, preferred: r.preferred, resolved: r.resolved, weight:r.weight, substituted: r.resolved !== r.preferred };
       }),
-    edited_with: 'TOONDESK/1.1'
+    edited_with: 'TOONDESK/0.3.3'
   };
 }
 const pngBlob = (page, scale) => new Promise(r => rasterize(page, scale).toBlob(r, 'image/png'));

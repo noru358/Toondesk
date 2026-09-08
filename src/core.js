@@ -146,6 +146,16 @@ async function ensureFontLoaded(family, weight=400) {
     return document.fonts.check(`${weight} 16px ${quoteFont(family)}`);
   } catch { return false; }
 }
+function recordFontResolutionReceipts() {
+  for (const p of doc.pages || []) for (const o of p.objects || []) {
+    if (o.type !== 'text' && o.type !== 'sfx') continue;
+    o.font = o.font || {};
+    const r = fontCssFor(o.font);
+    o.font.resolved_family = r.resolved;
+    o.font.resolved_weight = r.weight;
+    o.font.substituted = r.resolved !== r.preferred;
+  }
+}
 async function ensureProjectFonts() {
   const req=[];
   for (const p of doc.pages || []) for (const o of p.objects || []) {
@@ -155,6 +165,7 @@ async function ensureProjectFonts() {
   }
   const uniq=[...new Map(req.map(x=>[x.join('|'),x])).values()];
   await Promise.all(uniq.map(([family,weight])=>ensureFontLoaded(family,weight)));
+  recordFontResolutionReceipts();
 }
 
 
@@ -170,6 +181,13 @@ const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const clone = o => JSON.parse(JSON.stringify(o));
+const SceneState = globalThis.ToonDeskSceneState;
+if (!SceneState) throw new Error('scene_state.js must load before core.js');
+const markManual = (o, ...keys) => SceneState.markManual(o, ...keys);
+const clearManual = (o, ...keys) => SceneState.clearManual(o, ...keys);
+const hasManual = (o, key) => SceneState.hasManualOverride(o, key);
+const manualList = o => SceneState.manualOverrideList(o);
+const stripLineBreaks = s => SceneState.stripLineBreaks(s);
 const round2 = n => Math.round(n * 100) / 100;
 const uid = p => p + '_' + Math.random().toString(36).slice(2, 8);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -437,7 +455,7 @@ function makeParts(p, kind) {
       font: fontDefaults(isS ? 'speech' : 'inner_thought', 'friendly_round_body'), fill: '#221f1d',
       align: 'center', rotation: 0, z: z + 1, visible: true, locked: false, group_id: gid
     };
-    mk.add = [box, txt]; mk.sel = [box.id, txt.id];
+    mk.add = [box, txt]; mk.add.forEach(o=>markManual(o,'object_presence')); mk.sel = [box.id, txt.id];
   } else if (kind === 'narration' || kind === 'title' || kind === 'sfx') {
     const isT = kind === 'title', isX = kind === 'sfx';
     const gid = isT ? ensureGroup(p, `${pre}.title`, 'title', let_) : ensureGroup(p, nextGroupIndex(p, kind), kind === 'narration' ? 'narration' : 'sfx', let_);
@@ -454,7 +472,7 @@ function makeParts(p, kind) {
       align: isT ? 'left' : 'center', rotation: isX ? -8 : 0, z, visible: true, locked: false, group_id: gid
     };
     if (isX) { o.stroke = '#ffffff'; o.stroke_width = 8; }
-    mk.add = [o]; mk.sel = [o.id];
+    markManual(o,'object_presence'); mk.add = [o]; mk.sel = [o.id];
   } else if (kind === 'shape') {
     const gid = ensureGroup(p, nextGroupIndex(p, 'deco'), 'deco', over);
     const o = {

@@ -106,21 +106,33 @@ function wrapPara(text, maxW) {
   out.push(line);
   return out;
 }
+function textPadding(o) {
+  const p=o?.padding;
+  if(Number.isFinite(p)){const v=Math.max(0,p);return{left:v,right:v,top:v,bottom:v};}
+  return {
+    left:Math.max(0,Number(p?.left)||0), right:Math.max(0,Number(p?.right)||0),
+    top:Math.max(0,Number(p?.top)||0), bottom:Math.max(0,Number(p?.bottom)||0)
+  };
+}
 function layoutText(o) {
   const fs = fontString(o);
   MEAS.font = fs.css;
-  const maxW = Math.max(8, o.width || 200);
+  const pad=textPadding(o);
+  const maxW = Math.max(8, (o.width || 200) - pad.left - pad.right);
+  const contentH = Math.max(0, (o.height || 0) - pad.top - pad.bottom);
   const lines = [];
   for (const para of String(o.text ?? '').split('\n')) lines.push(...wrapPara(para, maxW));
   const lh = fs.size * fs.lh;
   const total = lines.length * lh;
   const widest = Math.max(0, ...lines.map(l => MEAS.measureText(l).width));
-  return { ...fs, lines, lh, total, widest, overflow: total > (o.height || 0) + fs.size * 0.3 || widest > maxW + 1 };
+  return { ...fs, lines, lh, total, widest, pad, maxW, contentH,
+    overflow: total > contentH + fs.size * 0.3 || widest > maxW + 1 };
 }
 function textAnchors(o, L) {
-  const align = o.align || 'center';
-  const x = align === 'left' ? o.x : align === 'right' ? o.x + o.width : o.x + o.width / 2;
-  const top = o.y + ((o.height || L.total) - L.total) / 2;
+  const align = o.align || 'center', p=L.pad||textPadding(o);
+  const left=o.x+p.left, right=o.x+o.width-p.right;
+  const x = align === 'left' ? left : align === 'right' ? right : (left + right) / 2;
+  const top = o.y + p.top + Math.max(0,(L.contentH - L.total) / 2);
   return { align, x, top };
 }
 
