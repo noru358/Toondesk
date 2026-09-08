@@ -82,7 +82,12 @@ function renderLayers() {
       lk.title = o.type === 'artwork' ? '프레임 기본 잠금 · 해제 시 CUSTOM_OVERRIDE' : '잠금';
       lk.onclick = e => { e.stopPropagation(); pushHistory(); o.locked = !o.locked; fullRefresh(); };
       row.append(vis, lk);
-      row.onclick = e => { selectObject(o, e.shiftKey); sel.enter = groupOf(p, o.group_id)?.parent_id ? o.group_id : null; fullRefresh(); };
+      row.onclick = e => {
+        if(!e.shiftKey)sel.ids.clear();
+        if(e.shiftKey&&sel.ids.has(o.id))sel.ids.delete(o.id);else sel.ids.add(o.id);
+        sel.enter = groupOf(p, o.group_id)?.parent_id ? o.group_id : null;
+        fullRefresh();
+      };
       g.appendChild(row);
     }
     host.appendChild(g);
