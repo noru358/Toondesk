@@ -1,4 +1,4 @@
-name: Web Live
+name: Web Live Sync
 
 on:
   push:
@@ -14,42 +14,25 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
+  group: web-live-sync
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
         with:
-          enablement: true
+          fetch-depth: 0
       - name: Static JS/JSON checks
         run: |
           set -euo pipefail
           for f in src/*.js; do node --check "$f"; done
           node -e "JSON.parse(require('fs').readFileSync('profiles/jipbap_v2.example.json','utf8'));"
-      - name: Build static site
-        shell: bash
+      - name: Publish main to gh-pages
         run: |
           set -euo pipefail
-          rm -rf _site
-          mkdir -p _site
-          cp index.html styles.css manifest.webmanifest _site/
-          cp -R src profiles _site/
-          touch _site/.nojekyll
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          git push origin HEAD:gh-pages --force
