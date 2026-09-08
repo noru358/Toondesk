@@ -130,3 +130,5 @@ ipcMain.handle('toondesk:take-pending-project', async () => {
   pendingProject = null;
   return p;
 });
+
+ipcMain.handle('toondesk:get-version', async () => app.getVersion());
