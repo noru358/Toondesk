@@ -55,6 +55,7 @@ $('#btnNewPage').onclick = () => {
 };
 
 $('#docName').onchange=e=>{doc.name=e.target.value.trim()||doc.name;persist();};
+$('#btnSave').onclick=()=>saveProjectSession(false);
 $('#btnUndo').onclick=undo; $('#btnRedo').onclick=redo;
 $('#btnZoomIn').onclick=()=>zoomAt(view.z*1.2);
 $('#btnZoomOut').onclick=()=>zoomAt(view.z/1.2);
@@ -120,7 +121,7 @@ $('#btnExport').onclick=()=>{
       $('#e2').onclick=async()=>{closeModal();await saveText(pageToSVG(curPage()),doc.name+'_'+curPage().id+'.svg','image/svg+xml')};
       $('#e3').onclick=async()=>{closeModal();await exportPackage('png')};
       $('#e4').onclick=async()=>{closeModal();await exportPackage('all')};
-      $('#e5').onclick=()=>{closeModal();saveText(JSON.stringify(projectJSON()),doc.name+'.toondesk')};
+      $('#e5').onclick=()=>{closeModal();saveProjectSession(true)};
       $('#e6').onclick=async()=>{const s=JSON.stringify(layoutJSON(curPage()),null,2);try{await navigator.clipboard.writeText(s);toast('복사됨')}catch{await saveText(s,curPage().id+'.layout.json')}closeModal();};
     });
 };
