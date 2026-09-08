@@ -207,8 +207,9 @@ $('#editor').addEventListener('keydown', e => { if (e.key === 'Escape') { e.prev
 
 addEventListener('keydown', e => {
   if (e.code === 'Space') spaceDown = true;
-  const tag = (e.target.tagName || '').toLowerCase(); if (['input','textarea','select'].includes(tag)) return;
   const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); saveProjectSession(false); return; }
+  const tag = (e.target.tagName || '').toLowerCase(); if (['input','textarea','select'].includes(tag)) return;
   if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
   if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); act('dup'); return; }
