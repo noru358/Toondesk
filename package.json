@@ -1,6 +1,6 @@
 {
   "name": "toondesk",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "description": "Profile-driven direct-manipulation editor for editable comic/carousel scene JSON.",
   "main": "desktop/main.cjs",
@@ -8,7 +8,8 @@
     "start": "electron .",
     "desktop": "electron .",
     "dist": "electron-builder --publish never",
-    "dist:win": "electron-builder --win nsis portable --publish never"
+    "dist:win": "electron-builder --win nsis portable --publish never",
+    "test": "node --test tests/*.test.cjs"
   },
   "engines": {
     "node": ">=20"
