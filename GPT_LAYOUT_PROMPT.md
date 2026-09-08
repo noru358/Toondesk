@@ -1,98 +1,118 @@
-# JIPBAP layout generation — V2 full-art default profile
+# ToonDesk editable reconstruction bridge
 
-Generate `EDITABLE_COMPOSITION_PACKAGE_V1` / `EDITOR_SCENE_MODEL_V1` page JSON. This is the project presentation authority consumed by Chat rendering and ToonDesk.
+Status: ACTIVE DOWNSTREAM BRIDGE
+Updated: 2026-09-09
 
-## Default, not capability limit
+This prompt is **not** JIPBAP creative/planning authority.
+For JIPBAP, story/copy/style/approval rules live in `noru358/jipbap`; ToonDesk receives an approved presentation target plus accepted artwork/copy and reconstructs them into the shared scene model.
 
-Use `JIPBAP_PRESENTATION_SHELL_V2` revision `2026-09-09_FULL_ART_OVERLAY` as the production default. ToonDesk may later explicitly override page count or artwork-frame geometry; that does not create a new scene format.
+Use the project-supplied profile/presentation shell. The local `profiles/jipbap_v2.example.json` is a development mirror, not canonical project authority.
 
-## Canvas
+## Input contract
 
-1080×1350 (4:5).
+For each page, consume only the information needed for editable reconstruction:
 
-## COVER default
+- accepted artwork source identity
+- existing BODY extraction metadata reference + extraction box index when applicable
+- final artwork FIT/crop transform
+- approved literal copy
+- approved presentation-target provenance/hash when supplied
+- presentation intent: bubble silhouette, tail geometry, explicit line breaks, typography character, relative placement, rotation and z-order
+- optional placement guides / avoid regions
+- existing scene object IDs and any `manual_overrides`
 
-- full-canvas artwork frame: x=0 y=0 w=1080 h=1350
-- soft title-safe hint: x=48 y=36 w=984 h≈330
-- default grammar: full-canvas artwork + menu tag + dominant title + optional decorative vectors
-- title/menu/decor remain independent editable lettering/overlay objects
-- do not squeeze/stretch artwork for copy
-- the title-safe region is a placement hint, not a separate hero frame
+Do not invent a new reference image, approval gate, story state, or duplicate crop manifest.
 
-## BODY default
+## Output contract
 
-- full-canvas artwork frame: x=0 y=0 w=1080 h=1350
-- no mandatory lower meta band and no structural top-art/bottom-copy split
-- `speech`, `inner_thought`, `narration`, and `sfx` are freeform editable overlays
-- use a soft 48px safe inset as a starting hint
-- prefer naturally empty areas and avoid primary face / food / hand-action regions when optional `avoid_regions` metadata is present
-- artwork source is an accepted BOARD crop and must not be stretched
-- artwork starts `locked:true`; explicit editor unlock may later transform the frame and is treated as `CUSTOM_OVERRIDE`
-- moving lettering alone is normal presentation editing and does not constitute a structural custom override
+Generate `EDITABLE_COMPOSITION_PACKAGE_V1` / `EDITOR_SCENE_MODEL_V1` page JSON.
 
-## BOARD extraction
+Keep:
 
-- the generated board is nominally 2 columns × 3 rows
-- never infer crop boundaries only by dividing raster dimensions into exact equal pixel blocks
-- detect/confirm actual panel borders and store/use the resulting crop coordinates
-- any adjacent-panel contamination in an extracted BODY artwork asset must be repaired before publish
+- canvas/page data
+- stable `groups[]`
+- flat editable `objects[]`
+- accepted artwork provenance
+- presentation-target metadata/provenance already present at layout level
+- exact literal copy
+- explicit line breaks
+- preferred/fallback/resolved font information when available
+- bubble body and rich curved-tail geometry
+- crop transform on the artwork object
+- property-level `manual_overrides`
+- non-destructive `layout_attention` issues
 
-## Layers
+Do not flatten a whole page and call it editable.
 
-Keep the shared four top-level groups:
+## Artwork provenance and FIT
 
-1. background z=0
-2. artwork z=1..9
-3. lettering z=10..99
-4. overlay z=100..199
+BODY source identity is not re-owned here.
+Reference the existing board-extraction record and its box index through page `artwork_provenance`.
+The final 4:5 FIT transform remains the artwork object's `crop` metadata.
 
-Meaning-bearing text belongs in lettering. Speech/thought geometry and text are separate objects within one semantic instance group.
+COVER uses its approved distinct source by default. Never silently substitute a BODY cell for an accepted COVER source.
 
-## Semantic groups
+Changing lettering/layout does not authorize artwork replacement or BOARD regeneration.
 
-BODY may contain zero or more:
-- `sNN.speech.NN`
-- `sNN.thought.NN`
-- `sNN.narration.NN`
-- `sNN.sfx.NN`
+## Text and font behavior
 
-COVER keeps:
-- `cover.menu_tag`
-- `cover.title`
+Literal approved copy is authority.
+A presentation master may guide visual lettering style, but image-model glyphs or misspellings do not override approved text.
 
-## Typography defaults
+Preserve explicit `\n` line breaks.
+Preview and PNG export use the same ToonDesk text/layout calculation.
+Persist the runtime-resolved font family/weight and surface substitution instead of silently pretending the requested font loaded.
 
-Preserve semantic typography role plus the profile's preferred real font and fallback chain.
-For the current JIPBAP example:
-- cover title/menu: prefer `Jua`
-- body speech: prefer `Jua`
-- body thought/narration: prefer `Gowun Dodum`
-- SFX: prefer `Gaegu`
+External SVG rasterizers may differ in font metrics or antialiasing; do not claim pixel identity across rendering environments.
 
-If the preferred font cannot load, surface the substitution and ensure preview/export resolve the same fallback. Do not silently approve one font and hand off another.
+## Manual-edit merge policy
 
-## Approval identity
+When updating an existing scene by stable object ID:
 
-The FINAL_PUBLISH_GATE preview must be rendered from the exact same composition package that will be handed off. Do not separately generate a visually similar cover/body preview after BOARD acceptance.
+- preserve only the properties named in that object's `manual_overrides`
+- keep other properties eligible for the incoming reconstruction/update
+- `line_breaks` and literal `text` are separate override classes
+- if only line breaks were manually edited and upstream literal copy changes, keep the new literal copy and surface `LINE_BREAK_REVIEW_REQUIRED`
+- do not silently shrink type or discard manual geometry to hide overflow
+- a user-added object marked `object_presence` survives routine same-page reconstruction
+- accepted artwork provenance and existing presentation-target metadata remain sticky unless an explicit artwork/presentation authority change is supplied by the project
 
-## Automatic production rule
+Reapplying automatic placement is an explicit editor action. Clear only the requested override scope and leave unrelated manual edits intact.
 
-For normal Chat-mode episode assembly, use the V2 full-art default without inventing per-episode artwork-frame changes. Lettering placement remains fluid and focal-aware. Custom artwork-frame geometry is for explicit human/editor override, not routine automatic variation.
+## Bubble behavior
 
+Speech bubble body and text remain separate objects.
 
-## COVER provenance
+Use the existing rich `tail` representation:
 
-When a COVER artwork/crop is selected for the final-preview candidate, persist `page.cover_artwork_provenance` with the source and crop. Presentation-only repairs may move/reline title/menu/decor but must not silently replace the cover artwork with another BODY source.
-
-Use cover `avoid_regions` for face/food/hand focal subjects. Reflow lettering before covering those regions.
-
-## Speech bubble tails
-
-New speech bubbles should use the rich `tail` object rather than only legacy `tail_to`:
-- `style: soft_curved`
+- `enabled`
+- `style`
 - `tip_x`, `tip_y`
 - `attach_side`, `attach`
 - `base_width`
 - `curve`
 
-Keep text and bubble geometry separate. Tail geometry is independently editable and must survive package round trips.
+Horizontal bubble flip mirrors tail/body presentation only; text orientation remains unchanged.
+
+Do not introduce random geometry variation on every render.
+
+## JIPBAP default surface
+
+When the active supplied profile is JIPBAP V2:
+
+- automatic default remains COVER 1 + BODY 6
+- 1080×1350 pages
+- full-art overlay
+- accepted BODY cells originate from the text-free 2×3 board
+- no mandatory top text strip or lower meta band
+- lettering is focal-aware and freeform
+- page add/delete/duplicate, frame adjustment and other generic ToonDesk capabilities remain available as explicit editor actions
+
+These are project defaults, not ToonDesk capability limits.
+
+## Parity QC boundary
+
+The approved quality-first presentation master is the upstream visual target.
+Editable reconstruction must use exact accepted artwork and approved literal copy while reproducing presentation intent as closely as the scene model allows.
+
+If parity fails because ToonDesk cannot express the approved design, extend/revise scene capability or surface a manual-adjustment need. Do not quietly simplify the approved presentation to a generic box/font preset.
