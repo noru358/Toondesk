@@ -1,3 +1,11 @@
+## Web Live
+
+Primary development/use path: **https://noru358.github.io/Toondesk/**
+
+The hosted editor deploys automatically from `main`. Refreshing the same URL gets the newest editor, so normal development no longer requires downloading a new Windows executable for every change.
+
+On Chromium browsers such as Chrome/Edge, ToonDesk uses the browser File System Access API for native project open/save and Ctrl/Cmd+S in-place save. The Electron build remains an optional fallback for OS file association and offline/native workflows.
+
 # ToonDesk
 
 Profile-driven direct-manipulation editor for editable comic/carousel scene JSON.
