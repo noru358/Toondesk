@@ -71,10 +71,17 @@ $('#filePick').onchange=e=>{handleFiles(e.target.files);e.target.value='';};
 $('#dirPick').onchange=e=>{handleFiles(e.target.files);e.target.value='';};
 
 $('#btnOpen').onclick=()=>modal('프로젝트 열기',
-  '<p>layout JSON, artwork 이미지, presentation-shell/profile JSON 또는 프로젝트 폴더를 불러올 수 있습니다.</p>'+
-  '<div style="display:grid;gap:8px"><button class="btn" id="oDir">폴더 열기</button>'+
+  '<p>ToonDesk 세션(.toondesk), layout JSON, artwork 이미지, presentation-shell/profile JSON 또는 프로젝트 폴더를 불러올 수 있습니다.</p>'+
+  '<div style="display:grid;gap:8px">'+
+  (window.toondeskDesktop?'<button class="btn primary" id="oDesktop">ToonDesk 프로젝트 열기</button>':'')+
+  '<button class="btn" id="oDir">폴더 열기</button>'+
   '<button class="btn" id="oFiles">파일 선택</button><button class="btn" id="oBlank">새 빈 문서</button></div>',
   '<button class="btn" id="oCancel">닫기</button>',()=>{
+    if($('#oDesktop')) $('#oDesktop').onclick=async()=>{
+      closeModal();
+      const payload=await window.toondeskDesktop.openProject();
+      if(payload) await loadDesktopProject(payload);
+    };
     $('#oDir').onclick=()=>{closeModal();$('#dirPick').click();};
     $('#oFiles').onclick=()=>{closeModal();$('#filePick').click();};
     $('#oBlank').onclick=()=>{closeModal();loadBlank();fitView();fullRefresh();};
@@ -113,7 +120,7 @@ $('#btnExport').onclick=()=>{
       $('#e2').onclick=async()=>{closeModal();await saveText(pageToSVG(curPage()),doc.name+'_'+curPage().id+'.svg','image/svg+xml')};
       $('#e3').onclick=async()=>{closeModal();await exportPackage('png')};
       $('#e4').onclick=async()=>{closeModal();await exportPackage('all')};
-      $('#e5').onclick=()=>{closeModal();saveText(JSON.stringify(projectJSON()),doc.name+'.toondesk.json')};
+      $('#e5').onclick=()=>{closeModal();saveText(JSON.stringify(projectJSON()),doc.name+'.toondesk')};
       $('#e6').onclick=async()=>{const s=JSON.stringify(layoutJSON(curPage()),null,2);try{await navigator.clipboard.writeText(s);toast('복사됨')}catch{await saveText(s,curPage().id+'.layout.json')}closeModal();};
     });
 };
@@ -130,6 +137,13 @@ function loadBlank(){
   try{const th=localStorage.getItem('toondesk.theme');if(th)document.documentElement.setAttribute('data-theme',th)}catch{}
   const saved=await loadPersisted();
   if(saved?.pages?.length) await loadProject(saved); else loadBlank();
+
+  if(window.toondeskDesktop?.onOpenProject){
+    window.toondeskDesktop.onOpenProject(async payload=>{ await loadDesktopProject(payload); });
+    const pending=await window.toondeskDesktop.takePendingProject?.();
+    if(pending) await loadDesktopProject(pending);
+  }
+
   fitView();fullRefresh();syncUndo();
   document.fonts?.ready?.then(()=>fullRefresh());
 })();
