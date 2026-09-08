@@ -145,6 +145,8 @@ function customOverrideState() {
       if (!o.locked) reasons.push(`${p.id}:${o.id}:frame_unlocked`);
       if (!same(o.x, frame.x) || !same(o.y, frame.y) || !same(o.width, frame.width) || !same(o.height, frame.height) || !same(o.rotation || 0, 0))
         reasons.push(`${p.id}:${o.id}:frame_geometry`);
+      if (p.page.page_type === 'cover' && p.page.cover_artwork_provenance?.source && o.source !== p.page.cover_artwork_provenance.source)
+        reasons.push(`${p.id}:${o.id}:cover_artwork_source_override`);
     }
   }
   return { active: reasons.length > 0, reasons: [...new Set(reasons)] };
