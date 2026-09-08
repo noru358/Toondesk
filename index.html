@@ -11,7 +11,7 @@
 <body>
 <div id="app">
   <div class="topbar">
-    <div class="brand"><b>툰데스크</b><span>Scene Model V1</span></div>
+    <div class="brand"><b>툰데스크</b><span id="appVersion">Scene Model V1</span></div>
     <button class="btn icon mobonly" id="tgLeft" title="왼쪽 패널">☰</button>
     <div class="docname"><input id="docName" value="UNTITLED" aria-label="문서 이름" spellcheck="false"><span class="docmeta" id="docMeta">1 페이지</span></div>
     <div class="spacer"></div>
@@ -56,7 +56,7 @@
     <section class="center">
       <div class="ctxbar" id="ctxbar"></div>
       <div class="viewport" id="viewport"><canvas id="board"></canvas><div id="edwrap"><textarea id="editor" spellcheck="false"></textarea></div></div>
-      <div class="statusbar"><span id="stSel">선택 없음</span><span class="spacer"></span><span class="mono" id="stCoord">1080 × 1350</span><span class="sep"></span><button class="btn icon" id="btnZoomOut">−</button><span class="mono" id="stZoom">50%</span><button class="btn icon" id="btnZoomIn">＋</button><button class="btn" id="btnZoomFit">맞춤</button></div>
+      <div class="statusbar"><span id="stSel">선택 없음</span><span class="spacer"></span><button class="btn" id="btnGuides" title="soft safe/avoid 가이드 표시 (G)">가이드</button><span class="mono" id="stCoord">1080 × 1350</span><span class="sep"></span><button class="btn icon" id="btnZoomOut">−</button><span class="mono" id="stZoom">50%</span><button class="btn icon" id="btnZoomIn">＋</button><button class="btn" id="btnZoomFit">맞춤</button></div>
     </section>
     <aside class="panel right" id="panelRight">
       <div class="scroll">
