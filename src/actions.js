@@ -42,8 +42,8 @@ function act(name) {
   }
   if (name === 'tail') {
     H_();
-    if (o.tail_to) delete o.tail_to;
-    else o.tail_to = { x: o.x + o.width * .55, y: o.y + o.height + 95 };
+    if (bubbleTailData(o)) { delete o.tail; delete o.tail_to; }
+    else ensureBubbleTail(o);
     return fullRefresh();
   }
   if (name === 'crop') { sel.crop = o.id; return fullRefresh(); }
@@ -55,13 +55,73 @@ function act(name) {
   }
   if (name === 'lock') { H_(); o.locked = !o.locked; return fullRefresh(); }
   if (name === 'replace') { pendingReplace = o.id; $('#filePick').click(); return; }
-  if (name === 'alignL' || name === 'alignC' || name === 'alignR') {
+  if (['alignL','alignC','alignR','alignT','alignM','alignB'].includes(name)) {
     H_();
     const b = aabb(list);
     for (const x of list) {
       if (!movable(x)) continue;
-      const t = name === 'alignL' ? b.x : name === 'alignR' ? b.x + b.w - x.width : b.x + (b.w - x.width) / 2;
-      const d = t - x.x; x.x = round2(t); if (x.tail_to) x.tail_to.x = round2(x.tail_to.x + d);
+      let dx=0,dy=0;
+      if(name==='alignL')dx=b.x-x.x;
+      if(name==='alignC')dx=b.x+(b.w-x.width)/2-x.x;
+      if(name==='alignR')dx=b.x+b.w-x.width-x.x;
+      if(name==='alignT')dy=b.y-x.y;
+      if(name==='alignM')dy=b.y+(b.h-x.height)/2-x.y;
+      if(name==='alignB')dy=b.y+b.h-x.height-x.y;
+      x.x=round2(x.x+dx);x.y=round2(x.y+dy);shiftTailGeometry(x,dx,dy);
+    }
+    return fullRefresh();
+  }
+  if ((name === 'distH' || name === 'distV') && list.length >= 3) {
+    H_();
+    const vertical=name==='distV';
+    const sorted=[...list].sort((a,b)=>(vertical?a.y:a.x)-(vertical?b.y:b.x));
+    const first=sorted[0],last=sorted[sorted.length-1];
+    const start=vertical?first.y:first.x;
+    const end=(vertical?last.y+last.height:last.x+last.width);
+    const total=sorted.reduce((acc,o)=>acc+(vertical?o.height:o.width),0);
+    const gap=(end-start-total)/(sorted.length-1);
+    let cursor=start;
+    for(const x of sorted){
+      if(!movable(x)){cursor+=(vertical?x.height:x.width)+gap;continue;}
+      const target=cursor,cur=vertical?x.y:x.x;
+      const d=target-cur;
+      if(vertical){x.y=round2(target);shiftTailGeometry(x,0,d);}
+      else{x.x=round2(target);shiftTailGeometry(x,d,0);}
+      cursor+=(vertical?x.height:x.width)+gap;
+    }
+    return fullRefresh();
+  }
+  if(name==='smartPlace' && list.length){
+    H_();
+    const b=aabb(list),p=curPage();
+    const inset=p.page.page_type==='cover'
+      ? (SHELL.cover_title_safe||{x:48,y:36,width:W-96,height:330})
+      : {x:SHELL.body_safe_inset?.left||48,y:SHELL.body_safe_inset?.top||48,
+         width:W-(SHELL.body_safe_inset?.left||48)-(SHELL.body_safe_inset?.right||48),
+         height:H-(SHELL.body_safe_inset?.top||48)-(SHELL.body_safe_inset?.bottom||48)};
+    const cand=[
+      [b.x,b.y],
+      [inset.x,inset.y],
+      [inset.x+inset.width-b.w,inset.y],
+      [inset.x,inset.y+inset.height-b.h],
+      [inset.x+inset.width-b.w,inset.y+inset.height-b.h],
+      [inset.x+(inset.width-b.w)/2,inset.y],
+      [inset.x+(inset.width-b.w)/2,inset.y+inset.height-b.h]
+    ];
+    const regions=p.page.avoid_regions||[];
+    const area=(a,r)=>Math.max(0,Math.min(a.x+a.w,r.x+r.width)-Math.max(a.x,r.x))*Math.max(0,Math.min(a.y+a.h,r.y+r.height)-Math.max(a.y,r.y));
+    let best=null;
+    for(const [x,y] of cand){
+      const bb={x,y,w:b.w,h:b.h};
+      let score=0;
+      for(const rg of regions)score+=area(bb,rg)*(rg.priority??1);
+      if(x<0||y<0||x+b.w>W||y+b.h>H)score+=1e9;
+      score+=Math.hypot(x-b.x,y-b.y)*.05;
+      if(!best||score<best.score)best={x,y,score};
+    }
+    if(best){
+      const dx=best.x-b.x,dy=best.y-b.y;
+      for(const x of list){if(!movable(x))continue;x.x=round2(x.x+dx);x.y=round2(x.y+dy);shiftTailGeometry(x,dx,dy);}
     }
     return fullRefresh();
   }
@@ -106,9 +166,8 @@ vp.addEventListener('pointerdown', ev => {
     pushHistory(); return;
   }
   const one = selObjs().length === 1 ? selObjs()[0] : null;
-  if (one && one.tail_to && !one.locked && Math.hypot(P.x - one.tail_to.x, P.y - one.tail_to.y) < 12 / view.z) {
-    pushHistory(); drag = { mode: 'tail', o: one }; return;
-  }
+  const th=one?bubbleTailHandleAt(one,P.x,P.y):null;
+  if(th){pushHistory();ensureBubbleTail(one);drag={mode:th,o:one};return;}
   const h = handleAt(P.x, P.y);
   if (h) {
     pushHistory();
@@ -128,13 +187,16 @@ vp.addEventListener('pointerdown', ev => {
 vp.addEventListener('pointermove', ev => {
   const P = toPage(ev);
   if (!drag) {
+    const one=selObjs().length===1?selObjs()[0]:null;
+    const th=one?bubbleTailHandleAt(one,P.x,P.y):null;
     const h = handleAt(P.x, P.y);
-    vp.style.cursor = sel.crop ? 'grab' : h === 'rot' ? 'grab' : h ? ({ n: 'ns', s: 'ns', e: 'ew', w: 'ew', ne: 'nesw', sw: 'nesw', nw: 'nwse', se: 'nwse' }[h] + '-resize') : selectableAt(P.x, P.y) ? 'move' : 'default';
+    vp.style.cursor = sel.crop ? 'grab' : th ? 'crosshair' : h === 'rot' ? 'grab' : h ? ({ n: 'ns', s: 'ns', e: 'ew', w: 'ew', ne: 'nesw', sw: 'nesw', nw: 'nwse', se: 'nwse' }[h] + '-resize') : selectableAt(P.x, P.y) ? 'move' : 'default';
     return;
   }
   if (drag.mode === 'pan') { view.px = drag.ox + (ev.clientX - drag.sx); view.py = drag.oy + (ev.clientY - drag.sy); applyView(); return; }
   if (drag.mode === 'crop') { const t = drag.o; t.crop = t.crop || {}; t.crop.offset_x = round2((drag.c0.offset_x || 0) + (P.x - drag.sx)); t.crop.offset_y = round2((drag.c0.offset_y || 0) + (P.y - drag.sy)); draw(); return; }
-  if (drag.mode === 'tail') { drag.o.tail_to = { x: round2(P.x), y: round2(P.y) }; draw(); return; }
+  if (drag.mode === 'tailTip') { const t=ensureBubbleTail(drag.o);t.tip_x=round2(P.x);t.tip_y=round2(P.y);draw();return; }
+  if (drag.mode === 'tailAttach') { const t=ensureBubbleTail(drag.o),a=nearestBubbleAttachment(drag.o,P.x,P.y);t.attach_side=a.side;t.attach=round2(a.attach);draw();return; }
   if (drag.mode === 'move') {
     let dx = P.x - drag.start.x, dy = P.y - drag.start.y;
     const b = selBox();
@@ -213,6 +275,7 @@ addEventListener('keydown', e => {
   if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
   if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); act('dup'); return; }
+  if (!mod && e.key.toLowerCase() === 'g') { e.preventDefault(); view.guides=!view.guides; const b=$('#btnGuides');if(b)b.classList.toggle('on',view.guides);draw();return; }
   if (mod && e.key.toLowerCase() === 'a') { e.preventDefault(); objs().forEach(o => sel.ids.add(o.id)); fullRefresh(); return; }
   if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); act('del'); return; }
   if (e.key === 'Escape') { if (sel.crop) sel.crop = null; else { sel.ids.clear(); sel.enter = null; } fullRefresh(); return; }
