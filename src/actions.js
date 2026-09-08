@@ -46,6 +46,18 @@ function act(name) {
     else ensureBubbleTail(o);
     return fullRefresh();
   }
+  if (name === 'bubbleFlipX' && o?.type === 'bubble') {
+    const t = bubbleTailData(o);
+    if (!t) return toast('먼저 꼬리를 켜세요');
+    H_();
+    const q = ensureBubbleTail(o);
+    const cx = o.x + o.width / 2;
+    q.tip_x = round2(cx * 2 - q.tip_x);
+    q.attach = round2(1 - (q.attach ?? .5));
+    if (q.attach_side === 'left') q.attach_side = 'right';
+    else if (q.attach_side === 'right') q.attach_side = 'left';
+    return fullRefresh();
+  }
   if (name === 'crop') { sel.crop = o.id; return fullRefresh(); }
   if (name === 'cropDone') { sel.crop = null; return fullRefresh(); }
   if (name === 'cropReset') {
