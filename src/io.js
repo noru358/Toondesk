@@ -22,6 +22,7 @@ function addLayout(name, data) {
       const n = { visible: true, locked: false, rotation: 0, z: 10, ...o };
       if ((n.type === 'text' || n.type === 'sfx') && !n.align)
         n.align = (n.role === 'title' || n.role === 'menu_tag') ? 'left' : 'center';
+      if(n.type==='bubble'&&n.tail_to&&!n.tail)ensureBubbleTail(n);
       return n;
     }),
     groups: data.groups || []
@@ -78,6 +79,7 @@ async function loadDesktopProject(payload) {
 }
 
 async function saveProjectSession(forceAs = false) {
+  await ensureProjectFonts();
   const text = JSON.stringify(projectJSON());
   if (window.toondeskDesktop?.saveFile) {
     const bytes = new TextEncoder().encode(text);
@@ -180,10 +182,12 @@ function manifestJSON() {
 const pngBlob = (page, scale) => new Promise(r => rasterize(page, scale).toBlob(r, 'image/png'));
 
 async function exportPNG(scale = 1) {
+  await ensureProjectFonts();
   const p = curPage();
   if (await saveBlob(await pngBlob(p, scale), `${doc.name}_${p.id}.png`)) toast(`${p.id}.png 저장`);
 }
 async function exportAllPNG() {
+  await ensureProjectFonts();
   let n = 0;
   for (const p of doc.pages) {
     toast(`${p.id} 저장 중… (${n + 1}/${doc.pages.length})`, 4000);
@@ -202,6 +206,7 @@ function packageJSON() {
   };
 }
 async function exportPackage(kind) {
+  await ensureProjectFonts();
   const files = [];
   const put = (n, s) => files.push({ name: n, data: enc8(s) });
   if (kind !== 'png') {
@@ -228,6 +233,7 @@ async function loadProject(d) {
   }
   doc.template_id = d.template_id || SHELL.template_id;
   doc.manifest = d.manifest || null; doc.pages = d.pages || []; doc.images.clear();
+  for(const p of doc.pages)for(const o of (p.objects||[]))if(o.type==='bubble'&&o.tail_to&&!o.tail)ensureBubbleTail(o);
   for (const r of (d.images || [])) {
     const img = new Image(); img.src = r.url; await img.decode().catch(() => { });
     doc.images.set(r.name, { name: r.name, url: r.url, img, w: img.naturalWidth, h: img.naturalHeight });
