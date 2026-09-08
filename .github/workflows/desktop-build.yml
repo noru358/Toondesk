@@ -28,6 +28,12 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Static JS/JSON checks
+        shell: pwsh
+        run: |
+          Get-ChildItem src -Filter *.js | ForEach-Object { node --check $_.FullName }
+          Get-ChildItem desktop -Filter *.cjs | ForEach-Object { node --check $_.FullName }
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); JSON.parse(require('fs').readFileSync('profiles/jipbap_v2.example.json','utf8'));"
       - run: npm run dist:win
       - uses: actions/upload-artifact@v4
         with:
