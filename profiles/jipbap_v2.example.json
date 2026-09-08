@@ -13,7 +13,7 @@
     "allow_custom_override": true,
     "override_class": "CUSTOM_OVERRIDE",
     "override_is_scene_corruption": false,
-    "revision": "2026-09-09_UNIQUE_COVER_ORGANIC_LETTERING_V1"
+    "revision": "2026-09-09_PRESENTATION_MASTER_FIRST_V1"
   },
   "page_structure": {
     "automatic_default": {
@@ -69,7 +69,7 @@
       "kind": "soft_hint"
     },
     "placement_policy": {
-      "strategy": "focal_aware_freeform",
+      "strategy": "presentation_master_inherit_then_focal_aware_fallback",
       "optional_metadata": [
         "placement_guides",
         "avoid_regions"
@@ -132,7 +132,7 @@
       "focal_aware_lettering": true
     },
     "placement_policy": {
-      "strategy": "focal_aware_freeform",
+      "strategy": "presentation_master_inherit_then_focal_aware_fallback",
       "optional_metadata": [
         "placement_guides",
         "avoid_regions"
@@ -287,6 +287,14 @@
       "container": "none",
       "editable": true,
       "rotation_allowed": true
+    },
+    "presentation_master_policy": {
+      "bubble_shape": "inherit_when_specified",
+      "tail_geometry": "inherit_when_specified",
+      "line_breaks": "inherit_when_specified",
+      "typography_character": "inherit_when_specified",
+      "position_scale_rotation": "inherit_when_specified",
+      "shell_values_are": "fallback_only"
     }
   },
   "typography_roles": {
@@ -301,7 +309,8 @@
         "Do Hyeon",
         "Noto Sans KR",
         "sans-serif"
-      ]
+      ],
+      "authority": "fallback_only_when_presentation_master_unspecified"
     },
     "cover_title": {
       "family_intent": "friendly_handdrawn_display",
@@ -316,7 +325,8 @@
         "Do Hyeon",
         "Noto Sans KR",
         "sans-serif"
-      ]
+      ],
+      "authority": "fallback_only_when_presentation_master_unspecified"
     },
     "body_speech": {
       "family_intent": "friendly_round_body",
@@ -331,7 +341,8 @@
         "Gowun Dodum",
         "Noto Sans KR",
         "sans-serif"
-      ]
+      ],
+      "authority": "fallback_only_when_presentation_master_unspecified"
     },
     "body_thought": {
       "family_intent": "friendly_round_body",
@@ -344,7 +355,8 @@
         "Jua",
         "Noto Sans KR",
         "sans-serif"
-      ]
+      ],
+      "authority": "fallback_only_when_presentation_master_unspecified"
     },
     "body_narration": {
       "family_intent": "friendly_round_body",
@@ -356,7 +368,8 @@
       "fallback_families": [
         "Noto Sans KR",
         "sans-serif"
-      ]
+      ],
+      "authority": "fallback_only_when_presentation_master_unspecified"
     },
     "body_sfx": {
       "family_intent": "handdrawn_display",
@@ -369,7 +382,8 @@
         "Jua",
         "Do Hyeon",
         "sans-serif"
-      ]
+      ],
+      "authority": "fallback_only_when_presentation_master_unspecified"
     },
     "cover_episode_label": {
       "family_intent": "friendly_round_display",
@@ -383,7 +397,8 @@
         "Jua",
         "Noto Sans KR",
         "sans-serif"
-      ]
+      ],
+      "authority": "fallback_only_when_presentation_master_unspecified"
     }
   },
   "font_resolution": {
@@ -391,6 +406,18 @@
     "surface_missing_preferred_font_warning": true,
     "preview_export_must_share_resolved_family": true,
     "font_binary_is_authority": false
+  },
+  "presentation_design": {
+    "mode": "PRESENTATION_MASTER_FIRST",
+    "approved_master_is_upstream_visual_target": true,
+    "editor_scene_is_downstream_reconstruction": true,
+    "editor_defaults_are_fallback_only": true,
+    "silent_design_simplification_for_tool_compatibility": false,
+    "literal_copy_authority": "PLAN_APPROVED_COPY",
+    "accepted_artwork_identity_preserved_in_final_reconstruction": true,
+    "target_provenance_required": true,
+    "parity_qc_required_after_reconstruction": true,
+    "routine_second_user_gate_after_parity": false
   },
   "_note": "NON_AUTHORITATIVE development mirror; canonical profile is noru358/jipbap/templates/JIPBAP_PRESENTATION_SHELL_V2.json"
 }
