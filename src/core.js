@@ -319,7 +319,7 @@ function makeParts(p, kind) {
     const gid = isT ? ensureGroup(p, `${pre}.title`, 'title', let_) : ensureGroup(p, nextGroupIndex(p, kind), kind === 'narration' ? 'narration' : 'sfx', let_);
     const rp = isT ? ROLE.title : isX ? ROLE.sfx : ROLE.narration;
     const o = {
-      id: uid('txt'), type: isX ? 'sfx' : 'text', role: isT ? 'title' : isX ? 'food_contact' : 'narration',
+      id: uid('txt'), type: isX ? 'sfx' : 'text', role: isT ? 'title' : isX ? 'sfx' : 'narration',
       text: isT ? '타이틀' : isX ? '톡' : '나레이션 문장',
       x: isT ? 60 : isX ? 90 : (SHELL.body_safe_inset?.left || 48),
       y: isT ? 132 : isX ? 640 : (SHELL.body_safe_inset?.top || 48),
