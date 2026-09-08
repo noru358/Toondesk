@@ -17,18 +17,18 @@ let SHELL = {
   template_id: 'TOONDESK_GENERIC_DEFAULT',
   profile_id: 'TOONDESK_GENERIC_DEFAULT',
   allow_custom_override: true,
-  body_artwork_frame: { x: 40, y: 40, width: 1000, height: 1000 },
-  cover_hero_frame:   { x: 40, y: 310, width: 1000, height: 1000 },
-  cover_title_safe:   { x: 60, y: 40, width: 960, height: 240 },
-  body_bands: [
-    { name: 'meta_region', x: 60, y: 1080, width: 960, height: 230 }
-  ],
+  body_artwork_frame: { x: 0, y: 0, width: 1080, height: 1350 },
+  cover_hero_frame:   { x: 0, y: 0, width: 1080, height: 1350 },
+  cover_title_safe:   { x: 48, y: 36, width: 984, height: 330, kind: 'soft_hint' },
+  body_safe_inset: { left: 48, top: 48, right: 48, bottom: 48, kind: 'soft_hint' },
+  body_bands: [],
   semantic_regions: {
-    speech: 'artwork',
-    sfx: 'artwork',
-    inner_thought: 'meta_region',
-    narration: 'meta_region'
+    speech: 'freeform_overlay',
+    sfx: 'freeform_overlay',
+    inner_thought: 'freeform_overlay',
+    narration: 'freeform_overlay'
   },
+  typography_roles: {},
   default_page_structure: null,
   default_artwork_locked: true
 };
@@ -45,7 +45,7 @@ function applyShellProfile(data) {
   const semantics = data.profile_semantics || data.editor_policy || {};
   const pageStructure = data.page_structure?.automatic_default || data.editor_policy?.default_page_structure || null;
   const bodyFrame = body.artwork_frame || SHELL.body_artwork_frame;
-  const coverFrame = cover.hero_frame || SHELL.cover_hero_frame;
+  const coverFrame = cover.hero_frame || cover.artwork_frame || SHELL.cover_hero_frame;
   SHELL = {
     template_id: data.template_id || data.schema || SHELL.template_id,
     profile_id: data.profile_id || data.template_id || data.schema || 'CUSTOM_PROFILE',
@@ -53,8 +53,10 @@ function applyShellProfile(data) {
     body_artwork_frame: bodyFrame,
     cover_hero_frame: coverFrame,
     cover_title_safe: title || SHELL.cover_title_safe,
-    body_bands: meta ? [{ name: 'meta_region', ...meta }] : (body.preferred_regions || SHELL.body_bands),
+    body_safe_inset: body.safe_inset || SHELL.body_safe_inset,
+    body_bands: meta ? [{ name: 'meta_region', ...meta }] : (body.preferred_regions || []),
     semantic_regions: body.semantic_placement || SHELL.semantic_regions,
+    typography_roles: data.typography_roles || {},
     default_page_structure: pageStructure,
     default_artwork_locked: bodyFrame.default_locked !== false
   };
@@ -106,11 +108,28 @@ const INTENT_MAP = {
   NanumSquareRound: 'Jua',
   NanumSquare: 'Do Hyeon'
 };
-const fontCssFor = intent => {
-  const id = INTENT_MAP[intent] || (FONTS.some(f => f.id === intent) ? intent : 'Jua');
-  const f = FONTS.find(x => x.id === id) || FONTS[0];
-  return { id, css: f.css + ', "Noto Sans KR", sans-serif' };
+const quoteFont = id => id === 'sans-serif' ? id : '"' + String(id).replace(/"/g, '') + '"';
+const fontCssFor = spec => {
+  const cfg = typeof spec === 'string' ? { family_intent: spec } : (spec || {});
+  const intent = cfg.family_intent;
+  const preferred = cfg.preferred_family || INTENT_MAP[intent] || (FONTS.some(f => f.id === intent) ? intent : 'Jua');
+  const fallback = Array.isArray(cfg.fallback_families) ? cfg.fallback_families : [];
+  const chain = [...new Set([preferred, ...fallback, 'Noto Sans KR', 'sans-serif'].filter(Boolean))];
+  const isAvailable = id => id === 'sans-serif' || !document.fonts || document.fonts.check('16px ' + quoteFont(id));
+  const resolved = chain.find(isAvailable) || preferred;
+  return { id: preferred, preferred, resolved, available: isAvailable(preferred), chain, css: chain.map(quoteFont).join(', ') };
 };
+function fontDefaults(roleName, fallbackIntent) {
+  const rp = ROLE[roleName] || ROLE.narration;
+  const prof = SHELL.typography_roles?.[rp.key] || {};
+  return {
+    family_intent: prof.family_intent || fallbackIntent || rp.intent,
+    preferred_family: prof.preferred_family,
+    fallback_families: prof.fallback_families,
+    weight: prof.weight ?? rp.weight,
+    size: prof.nominal_size ?? rp.nominal
+  };
+}
 
 const ICON = {
   eye:     '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.6 8S3.9 3.8 8 3.8 14.4 8 14.4 8 12.1 12.2 8 12.2 1.6 8 1.6 8Z"/><circle cx="8" cy="8" r="1.9"/></svg>',
@@ -134,8 +153,18 @@ function toast(msg, ms = 2200) {
   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms);
 }
 let DL = null;            // claude.ai downloads capability, when the page runs as an Artifact
-const hostMode = () => DL ? 'artifact' : 'local';
+const hostMode = () => window.toondeskDesktop ? 'desktop' : DL ? 'artifact' : 'local';
 async function saveBlob(blob, name) {
+  if (window.toondeskDesktop?.saveFile) {
+    try {
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const r = await window.toondeskDesktop.saveFile({ name, bytes });
+      return !!r?.saved;
+    } catch (e) {
+      toast('데스크톱 저장 실패' + (e?.message ? ': ' + e.message : ''), 3000);
+      return false;
+    }
+  }
   if (DL) {
     try { await DL.save({ filename: name, data: blob }); return true; }
     catch (e) {
@@ -264,7 +293,11 @@ function makeParts(p, kind) {
   if (kind === 'speech' || kind === 'thought') {
     const isS = kind === 'speech';
     const gid = ensureGroup(p, nextGroupIndex(p, isS ? 'speech' : 'thought'), isS ? 'speech' : 'inner_thought', let_);
-    const bx = 90, by = p.page.page_type === 'cover' ? 400 : (isS ? 120 : (SHELL.body_bands[0]?.y || 1080)), bw = 900, bh = 140;
+    const inset = SHELL.body_safe_inset || { left: 48, top: 48, right: 48, bottom: 48 };
+    const bx = p.page.page_type === 'cover' ? 70 : (inset.left || 48);
+    const by = p.page.page_type === 'cover' ? 400 : (isS ? (inset.top || 48) + 40 : H - (inset.bottom || 48) - 190);
+    const bw = p.page.page_type === 'cover' ? 900 : Math.min(760, W - (inset.left || 48) - (inset.right || 48));
+    const bh = 140;
     const box = {
       id: uid(isS ? 'bub' : 'thg'), type: isS ? 'bubble' : 'thought_box', role: isS ? 'speech' : 'inner_thought',
       x: bx, y: by, width: bw, height: bh, radius: isS ? 44 : 18,
@@ -277,7 +310,7 @@ function makeParts(p, kind) {
       id: uid('txt'), type: 'text', role: isS ? 'speech' : 'inner_thought',
       text: isS ? '여기에 대사' : '여기에 속마음',
       x: bx + 28, y: by + 22, width: bw - 56, height: bh - 44,
-      font: { family_intent: 'NanumSquareRound', weight: rp.weight, size: rp.nominal }, fill: '#221f1d',
+      font: fontDefaults(isS ? 'speech' : 'inner_thought', 'friendly_round_body'), fill: '#221f1d',
       align: 'center', rotation: 0, z: z + 1, visible: true, locked: false, group_id: gid
     };
     mk.add = [box, txt]; mk.sel = [box.id, txt.id];
@@ -288,8 +321,11 @@ function makeParts(p, kind) {
     const o = {
       id: uid('txt'), type: isX ? 'sfx' : 'text', role: isT ? 'title' : isX ? 'food_contact' : 'narration',
       text: isT ? '타이틀' : isX ? '톡' : '나레이션 문장',
-      x: isT ? 60 : 90, y: isT ? 132 : isX ? 640 : (SHELL.body_bands[0]?.y || 1080), width: isT ? 900 : isX ? 260 : 900, height: isT ? 100 : isX ? 100 : 90,
-      font: { family_intent: isX ? 'handdrawn_display' : 'NanumSquareRound', weight: rp.weight, size: rp.nominal },
+      x: isT ? 60 : isX ? 90 : (SHELL.body_safe_inset?.left || 48),
+      y: isT ? 132 : isX ? 640 : (SHELL.body_safe_inset?.top || 48),
+      width: isT ? 900 : isX ? 260 : Math.min(760, W - 2 * (SHELL.body_safe_inset?.left || 48)),
+      height: isT ? 100 : isX ? 100 : 90,
+      font: fontDefaults(isT ? 'title' : isX ? 'sfx' : 'narration', isX ? 'handdrawn_display' : isT ? 'friendly_handdrawn_display' : 'friendly_round_body'),
       fill: isT ? '#221f1d' : isX ? '#e0562b' : '#221f1d',
       align: isT ? 'left' : 'center', rotation: isX ? -8 : 0, z, visible: true, locked: false, group_id: gid
     };
