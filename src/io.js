@@ -63,16 +63,38 @@ async function handleFiles(files) {
   } else toast('읽을 수 있는 파일이 없습니다');
 }
 
+let desktopProjectPath = null;
 async function loadDesktopProject(payload) {
   if (!payload?.text) return false;
   try {
     const f = new File([payload.text], payload.name || 'project.toondesk', { type: 'application/json' });
     await handleFiles([f]);
+    desktopProjectPath = payload.path || null;
     return true;
   } catch (e) {
     toast('프로젝트 열기 실패: ' + (e?.message || e), 3200);
     return false;
   }
+}
+
+async function saveProjectSession(forceAs = false) {
+  const text = JSON.stringify(projectJSON());
+  if (window.toondeskDesktop?.saveFile) {
+    const bytes = new TextEncoder().encode(text);
+    const r = await window.toondeskDesktop.saveFile({
+      name: doc.name + '.toondesk',
+      path: forceAs ? null : desktopProjectPath,
+      forceDialog: !!forceAs,
+      bytes
+    });
+    if (r?.saved) {
+      desktopProjectPath = r.path || desktopProjectPath;
+      toast('프로젝트 저장 완료');
+      return true;
+    }
+    return false;
+  }
+  return saveText(text, doc.name + '.toondesk');
 }
 async function readEntries(items) {
   const files = [];
