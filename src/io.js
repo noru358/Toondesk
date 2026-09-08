@@ -62,6 +62,18 @@ async function handleFiles(files) {
     toast(`${layouts ? '레이아웃 ' + layouts + '개 · ' : ''}${imgs ? '이미지 ' + imgs + '개 ' : ''}불러옴`);
   } else toast('읽을 수 있는 파일이 없습니다');
 }
+
+async function loadDesktopProject(payload) {
+  if (!payload?.text) return false;
+  try {
+    const f = new File([payload.text], payload.name || 'project.toondesk', { type: 'application/json' });
+    await handleFiles([f]);
+    return true;
+  } catch (e) {
+    toast('프로젝트 열기 실패: ' + (e?.message || e), 3200);
+    return false;
+  }
+}
 async function readEntries(items) {
   const files = [];
   const walk = async entry => {
@@ -134,7 +146,13 @@ function manifestJSON() {
     artwork_frame_transform: override.active ? 'custom_override_possible' : 'profile_default_locked',
     artwork_crop: 'editable_metadata_only',
     pages: doc.pages.map(p => p.id),
-    edited_with: 'TOONDESK/1.0'
+    font_resolution: doc.pages.flatMap(p => p.objects)
+      .filter(o => o.type === 'text' || o.type === 'sfx')
+      .map(o => {
+        const r = fontCssFor(o.font || {});
+        return { object_id: o.id, preferred: r.preferred, resolved: r.resolved, substituted: !r.available };
+      }),
+    edited_with: 'TOONDESK/1.1'
   };
 }
 const pngBlob = (page, scale) => new Promise(r => rasterize(page, scale).toBlob(r, 'image/png'));
