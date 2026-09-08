@@ -60,6 +60,7 @@ $('#btnUndo').onclick=undo; $('#btnRedo').onclick=redo;
 $('#btnZoomIn').onclick=()=>zoomAt(view.z*1.2);
 $('#btnZoomOut').onclick=()=>zoomAt(view.z/1.2);
 $('#btnZoomFit').onclick=fitView;
+$('#btnGuides').onclick=()=>{view.guides=!view.guides;$('#btnGuides').classList.toggle('on',view.guides);draw();};
 $('#tgLeft').onclick=()=>$('#panelLeft').hidden=!$('#panelLeft').hidden;
 $('#tgRight').onclick=()=>$('#panelRight').hidden=!$('#panelRight').hidden;
 $('#btnTheme').onclick=()=>{
@@ -145,6 +146,9 @@ function loadBlank(){
     if(pending) await loadDesktopProject(pending);
   }
 
+  const ver=await window.toondeskDesktop?.getVersion?.();
+  const av=$('#appVersion');if(av)av.textContent='Scene Model V1 · '+(ver?('v'+ver):'web');
+  await ensureProjectFonts();
   fitView();fullRefresh();syncUndo();
   document.fonts?.ready?.then(()=>fullRefresh());
 })();
