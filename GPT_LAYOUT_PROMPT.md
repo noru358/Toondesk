@@ -1,10 +1,10 @@
-# JIPBAP layout generation — V2 default profile
+# JIPBAP layout generation — V2 full-art default profile
 
 Generate `EDITABLE_COMPOSITION_PACKAGE_V1` / `EDITOR_SCENE_MODEL_V1` page JSON. This is the project presentation authority consumed by Chat rendering and ToonDesk.
 
 ## Default, not capability limit
 
-Use `JIPBAP_PRESENTATION_SHELL_V2` as the production default. These coordinates are the automatic first-pass layout. ToonDesk may later explicitly override page count, frame transforms, or geometry; that does not create a new scene format.
+Use `JIPBAP_PRESENTATION_SHELL_V2` revision `2026-09-09_FULL_ART_OVERLAY` as the production default. ToonDesk may later explicitly override page count or artwork-frame geometry; that does not create a new scene format.
 
 ## Canvas
 
@@ -12,19 +12,30 @@ Use `JIPBAP_PRESENTATION_SHELL_V2` as the production default. These coordinates 
 
 ## COVER default
 
-- title/header region: x=60 y=40 w=960 h=240
-- hero artwork frame: x=40 y=310 w=1000 h=1000
-- default grammar: menu tag + dominant title + hero
+- full-canvas artwork frame: x=0 y=0 w=1080 h=1350
+- soft title-safe hint: x=48 y=36 w=984 h≈330
+- default grammar: full-canvas artwork + menu tag + dominant title + optional decorative vectors
+- title/menu/decor remain independent editable lettering/overlay objects
 - do not squeeze/stretch artwork for copy
+- the title-safe region is a placement hint, not a separate hero frame
 
 ## BODY default
 
-- artwork frame: x=40 y=40 w=1000 h=1000
-- lower meta region: x=60 y=1080 w=960 h=230
-- `speech` / speech bubble / `sfx`: place inside the artwork region by default
-- `inner_thought` / `narration`: place inside the meta region by default
-- artwork source is accepted BOARD crop and must not be stretched
+- full-canvas artwork frame: x=0 y=0 w=1080 h=1350
+- no mandatory lower meta band and no structural top-art/bottom-copy split
+- `speech`, `inner_thought`, `narration`, and `sfx` are freeform editable overlays
+- use a soft 48px safe inset as a starting hint
+- prefer naturally empty areas and avoid primary face / food / hand-action regions when optional `avoid_regions` metadata is present
+- artwork source is an accepted BOARD crop and must not be stretched
 - artwork starts `locked:true`; explicit editor unlock may later transform the frame and is treated as `CUSTOM_OVERRIDE`
+- moving lettering alone is normal presentation editing and does not constitute a structural custom override
+
+## BOARD extraction
+
+- the generated board is nominally 2 columns × 3 rows
+- never infer crop boundaries only by dividing raster dimensions into exact equal pixel blocks
+- detect/confirm actual panel borders and store/use the resulting crop coordinates
+- any adjacent-panel contamination in an extracted BODY artwork asset must be repaired before publish
 
 ## Layers
 
@@ -51,8 +62,19 @@ COVER keeps:
 
 ## Typography defaults
 
-Keep the project's semantic typography roles. Font family is intent, not binary authority.
+Preserve semantic typography role plus the profile's preferred real font and fallback chain.
+For the current JIPBAP example:
+- cover title/menu: prefer `Jua`
+- body speech: prefer `Jua`
+- body thought/narration: prefer `Gowun Dodum`
+- SFX: prefer `Gaegu`
+
+If the preferred font cannot load, surface the substitution and ensure preview/export resolve the same fallback. Do not silently approve one font and hand off another.
+
+## Approval identity
+
+The FINAL_PUBLISH_GATE preview must be rendered from the exact same composition package that will be handed off. Do not separately generate a visually similar cover/body preview after BOARD acceptance.
 
 ## Automatic production rule
 
-For normal Chat-mode episode assembly, use the V2 default layout without inventing per-episode frame changes. Custom geometry is for explicit human/editor override, not routine automatic variation.
+For normal Chat-mode episode assembly, use the V2 full-art default without inventing per-episode artwork-frame changes. Lettering placement remains fluid and focal-aware. Custom artwork-frame geometry is for explicit human/editor override, not routine automatic variation.
