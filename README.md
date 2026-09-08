@@ -59,6 +59,7 @@ The desktop build adds:
 - native open/save dialogs
 - `.toondesk` file association support
 - double-click / OS-open handoff into the editor
+- `Ctrl+S` / `Cmd+S` in-place save for an opened project
 - the same scene/rendering engine as browser mode
 
 Build installers/portable apps:
